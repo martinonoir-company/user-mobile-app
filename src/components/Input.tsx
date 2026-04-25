@@ -1,13 +1,5 @@
 import React, { forwardRef, useState } from 'react';
-import {
-  NativeSyntheticEvent,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputFocusEventData,
-  TextInputProps,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { colors, radius, spacing, text } from '@/theme';
 
 interface Props extends TextInputProps {
@@ -22,11 +14,11 @@ export const Input = forwardRef<TextInput, Props>(function Input(
   ref,
 ) {
   const [focused, setFocused] = useState(false);
-  const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleFocus: NonNullable<TextInputProps['onFocus']> = (e) => {
     setFocused(true);
     onFocus?.(e);
   };
-  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleBlur: NonNullable<TextInputProps['onBlur']> = (e) => {
     setFocused(false);
     onBlur?.(e);
   };
