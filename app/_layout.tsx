@@ -38,7 +38,7 @@ export default function RootLayout() {
                 options={{ title: 'Order Confirmed', headerBackVisible: false }}
               />
               <Stack.Screen name="account/profile" options={{ title: 'Profile' }} />
-              <Stack.Screen name="account/orders" options={{ title: 'Orders' }} />
+              <Stack.Screen name="account/orders/index" options={{ title: 'Orders' }} />
               <Stack.Screen
                 name="account/orders/[id]"
                 options={{ title: 'Order Details' }}
