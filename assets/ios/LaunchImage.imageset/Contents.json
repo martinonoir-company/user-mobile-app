@@ -1,0 +1,130 @@
+{
+  "images": [
+    {
+      "idiom": "iphone",
+      "scale": "1x",
+      "extent": "full-screen",
+      "minimum_system_version": "8.0",
+      "filename": "LaunchImage-1x-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "2x",
+      "extent": "full-screen",
+      "minimum_system_version": "8.0",
+      "filename": "LaunchImage-2x-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "minimum_system_version": "8.0",
+      "filename": "LaunchImage-3x-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "subtype": "2436h",
+      "filename": "LaunchImage-iPhoneX-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "2x",
+      "extent": "full-screen",
+      "subtype": "1792h",
+      "filename": "LaunchImage-iPhoneXR-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "subtype": "2688h",
+      "filename": "LaunchImage-iPhoneXSMax-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "subtype": "2796h",
+      "filename": "LaunchImage-iPhone14ProMax-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "2x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-2x-landscape.png",
+      "orientation": "landscape"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-3x-landscape.png",
+      "orientation": "landscape"
+    },
+    {
+      "idiom": "iphone",
+      "scale": "3x",
+      "extent": "full-screen",
+      "subtype": "2436h",
+      "filename": "LaunchImage-iPhoneX-landscape.png",
+      "orientation": "landscape"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "1x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-iPad-1x-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "2x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-iPad-2x-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "2x",
+      "extent": "full-screen",
+      "subtype": "2732h",
+      "filename": "LaunchImage-iPadPro-portrait.png",
+      "orientation": "portrait"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "1x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-iPad-1x-landscape.png",
+      "orientation": "landscape"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "2x",
+      "extent": "full-screen",
+      "filename": "LaunchImage-iPad-2x-landscape.png",
+      "orientation": "landscape"
+    },
+    {
+      "idiom": "ipad",
+      "scale": "2x",
+      "extent": "full-screen",
+      "subtype": "2732h",
+      "filename": "LaunchImage-iPadPro-landscape.png",
+      "orientation": "landscape"
+    }
+  ],
+  "info": {
+    "version": 1,
+    "author": "kurvant"
+  }
+}

@@ -52,6 +52,8 @@ export default function RootLayout() {
                 options={{ title: 'Track Order' }}
               />
               <Stack.Screen name="static/[slug]" options={{ title: '' }} />
+              <Stack.Screen name="verify-email" options={{ headerShown: false }} />
+              <Stack.Screen name="reset-password" options={{ headerShown: false }} />
             </Stack>
           </CartProvider>
         </AuthProvider>

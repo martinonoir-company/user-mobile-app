@@ -13,7 +13,14 @@
       "bundleIdentifier": "com.martinonoir.mobile"
     },
     "android": {
-      "package": "com.martinonoir.mobile"
+      "package": "com.martinonoir.mobile",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [{ "scheme": "martinonoir" }]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
