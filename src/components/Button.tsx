@@ -72,7 +72,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.lg,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -88,12 +88,12 @@ const styles = StyleSheet.create({
 
 const variantStyles = {
   primary: {
-    container: { backgroundColor: colors.primary[700] },
-    text: { color: '#fff', fontWeight: '600' as const },
+    container: { backgroundColor: colors.ink[900] },
+    text: { color: '#fff', fontWeight: '600' as const, letterSpacing: 0.2 },
   },
   secondary: {
-    container: { backgroundColor: colors.ink[900] },
-    text: { color: '#fff', fontWeight: '600' as const },
+    container: { backgroundColor: colors.primary[700] },
+    text: { color: '#fff', fontWeight: '600' as const, letterSpacing: 0.2 },
   },
   outline: {
     container: {
@@ -101,29 +101,29 @@ const variantStyles = {
       borderWidth: 1,
       borderColor: colors.ink[200],
     },
-    text: { color: colors.ink[900], fontWeight: '600' as const },
+    text: { color: colors.ink[900], fontWeight: '600' as const, letterSpacing: 0.2 },
   },
   ghost: {
     container: { backgroundColor: 'transparent' },
-    text: { color: colors.primary[700], fontWeight: '600' as const },
+    text: { color: colors.ink[900], fontWeight: '600' as const, letterSpacing: 0.2 },
   },
   danger: {
     container: { backgroundColor: colors.danger },
-    text: { color: '#fff', fontWeight: '600' as const },
+    text: { color: '#fff', fontWeight: '600' as const, letterSpacing: 0.2 },
   },
 } as const;
 
 const sizeStyles = {
   sm: {
-    container: { paddingHorizontal: spacing[4], paddingVertical: spacing[2] },
+    container: { paddingHorizontal: spacing[4], paddingVertical: spacing[2], minHeight: 36 },
     text: { ...text.sm },
   },
   md: {
-    container: { paddingHorizontal: spacing[5], paddingVertical: spacing[3] },
+    container: { paddingHorizontal: spacing[5], paddingVertical: spacing[3], minHeight: 44 },
     text: { ...text.sm },
   },
   lg: {
-    container: { paddingHorizontal: spacing[6], paddingVertical: 14 },
+    container: { paddingHorizontal: spacing[6], paddingVertical: 16, minHeight: 52 },
     text: { ...text.base },
   },
 } as const;

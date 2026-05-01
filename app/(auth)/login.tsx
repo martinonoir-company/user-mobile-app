@@ -1,11 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/lib/auth-context';
-import { colors, spacing, text } from '@/theme';
+import { colors, radius, spacing, text } from '@/theme';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -48,13 +49,18 @@ export default function LoginScreen() {
 
   return (
     <Screen scroll keyboardAware>
+      <View style={styles.brandRow}>
+        <Text style={styles.brand}>Martinonoir</Text>
+      </View>
+
       <View style={styles.header}>
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to continue shopping Martinonoir.</Text>
+        <Text style={styles.subtitle}>Sign in to pick up where you left off.</Text>
       </View>
 
       {error ? (
         <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={18} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -67,54 +73,57 @@ export default function LoginScreen() {
           autoComplete="email"
           keyboardType="email-address"
           textContentType="emailAddress"
-          placeholder="your@email.com"
+          placeholder="you@example.com"
           value={email}
           onChangeText={setEmail}
         />
 
-        <Input
-          label="Password"
-          required
-          autoCapitalize="none"
-          autoComplete="password"
-          textContentType="password"
-          secureTextEntry={!showPassword}
-          placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        <Pressable onPress={() => setShowPassword((v) => !v)}>
-          <Text style={styles.link}>{showPassword ? 'Hide password' : 'Show password'}</Text>
-        </Pressable>
+        <View>
+          <Input
+            label="Password"
+            required
+            autoCapitalize="none"
+            autoComplete="password"
+            textContentType="password"
+            secureTextEntry={!showPassword}
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Pressable
+            onPress={() => setShowPassword((v) => !v)}
+            hitSlop={8}
+            style={styles.eyeBtn}
+          >
+            <Ionicons
+              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={colors.ink[500]}
+            />
+          </Pressable>
+        </View>
 
         <Link href="/(auth)/forgot-password" asChild>
-          <Pressable>
-            <Text style={[styles.link, { alignSelf: 'flex-end' }]}>Forgot password?</Text>
+          <Pressable hitSlop={8} style={{ alignSelf: 'flex-end' }}>
+            <Text style={styles.link}>Forgot password?</Text>
           </Pressable>
         </Link>
 
         <Button
-          title="Sign In"
+          title="Sign in"
           onPress={handleSubmit}
           loading={submitting}
           fullWidth
           size="lg"
-          style={{ marginTop: spacing[3] }}
+          style={{ marginTop: spacing[2] }}
         />
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account? </Text>
+        <Text style={styles.footerText}>New to Martinonoir? </Text>
         <Link href="/(auth)/register" asChild>
-          <Pressable
-            onPress={() => {
-              // Link handles navigation; no-op onPress ensures haptic feedback.
-            }}
-          >
-            <Text style={[styles.footerText, { color: colors.primary[700], fontWeight: '600' }]}>
-              Create one
-            </Text>
+          <Pressable hitSlop={8}>
+            <Text style={styles.footerLink}>Create an account</Text>
           </Pressable>
         </Link>
       </View>
@@ -123,25 +132,49 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { marginTop: spacing[6], marginBottom: spacing[6] },
-  title: { ...text['3xl'], fontWeight: '700', color: colors.ink[900], marginBottom: spacing[2] },
+  brandRow: { marginTop: spacing[4], marginBottom: spacing[8] },
+  brand: {
+    ...text.lg,
+    fontWeight: '700',
+    color: colors.ink[900],
+    letterSpacing: 0.5,
+  },
+  header: { marginBottom: spacing[6] },
+  title: {
+    ...text['4xl'],
+    fontWeight: '700',
+    color: colors.ink[900],
+    marginBottom: spacing[2],
+    letterSpacing: -0.5,
+  },
   subtitle: { ...text.base, color: colors.ink[500] },
   form: { gap: spacing[4] },
-  link: { ...text.sm, color: colors.primary[700], fontWeight: '600' },
+  link: { ...text.sm, color: colors.ink[900], fontWeight: '600' },
+  eyeBtn: {
+    position: 'absolute',
+    right: spacing[3],
+    top: 36,
+    padding: spacing[2],
+  },
   errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
     backgroundColor: colors.dangerLight,
-    padding: spacing[3],
-    borderRadius: 8,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    borderRadius: radius.lg,
     marginBottom: spacing[4],
   },
-  errorText: { ...text.sm, color: colors.danger },
+  errorText: { ...text.sm, color: colors.danger, flex: 1 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: spacing[8],
+    marginTop: spacing[10],
+    marginBottom: spacing[4],
   },
   footerText: { ...text.sm, color: colors.ink[500] },
+  footerLink: { ...text.sm, color: colors.ink[900], fontWeight: '700' },
 });
 
-export const unstable_settings = {};
 export const options = { title: 'Sign In' };

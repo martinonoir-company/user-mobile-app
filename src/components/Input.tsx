@@ -38,8 +38,11 @@ export const Input = forwardRef<TextInput, Props>(function Input(
         onBlur={handleBlur}
         style={[
           styles.input,
-          focused && { borderColor: colors.primary[500] },
-          error ? { borderColor: colors.danger } : null,
+          focused && {
+            borderColor: colors.ink[900],
+            backgroundColor: colors.surface[0],
+          },
+          error ? { borderColor: colors.danger, backgroundColor: colors.dangerLight } : null,
           style,
         ]}
         {...rest}
@@ -57,18 +60,20 @@ const styles = StyleSheet.create({
   label: {
     ...text.xs,
     fontWeight: '600',
-    color: colors.ink[700],
+    color: colors.ink[600],
     marginBottom: 6,
+    letterSpacing: 0.2,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.ink[200],
+    borderColor: colors.ink[100],
     borderRadius: radius.lg,
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface[0],
+    paddingVertical: 14,
+    backgroundColor: colors.surface[1],
     color: colors.ink[900],
-    ...text.sm,
+    minHeight: 52,
+    ...text.base,
   },
   hint: {
     ...text.xs,

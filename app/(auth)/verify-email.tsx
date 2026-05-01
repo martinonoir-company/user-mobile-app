@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -5,7 +6,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { api } from '@/lib/api';
-import { colors, spacing, text } from '@/theme';
+import { colors, radius, spacing, text } from '@/theme';
 
 type Status = 'idle' | 'verifying' | 'success' | 'error';
 
@@ -17,7 +18,6 @@ export default function VerifyEmailScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
 
-  // Auto-verify when a deep link delivers a token.
   useEffect(() => {
     const initialToken = typeof params.token === 'string' ? params.token : '';
     if (initialToken && status === 'idle') {
@@ -66,23 +66,39 @@ export default function VerifyEmailScreen() {
   if (status === 'success') {
     return (
       <Screen scroll>
-        <View style={styles.header}>
+        <View style={styles.brandRow}>
+          <Text style={styles.brand}>Martinonoir</Text>
+        </View>
+        <View style={styles.successWrap}>
+          <View style={[styles.iconCircle, { backgroundColor: colors.successLight }]}>
+            <Ionicons name="checkmark" size={32} color={colors.success} />
+          </View>
           <Text style={styles.title}>Email verified</Text>
           <Text style={styles.subtitle}>
             Thanks for confirming your email. You can now sign in.
           </Text>
         </View>
-        <Button title="Continue" fullWidth onPress={() => router.replace('/(auth)/login')} />
+        <Button
+          title="Continue"
+          fullWidth
+          size="lg"
+          style={{ marginTop: spacing[6] }}
+          onPress={() => router.replace('/(auth)/login')}
+        />
       </Screen>
     );
   }
 
   return (
     <Screen scroll keyboardAware>
+      <View style={styles.brandRow}>
+        <Text style={styles.brand}>Martinonoir</Text>
+      </View>
+
       <View style={styles.header}>
-        <Text style={styles.title}>Verify your email</Text>
+        <Text style={styles.title}>Verify email</Text>
         <Text style={styles.subtitle}>
-          Paste the verification code from your email. If it expired, we can send a new one.
+          Paste the verification code from your email. If it's expired, we can send a new one.
         </Text>
       </View>
 
@@ -90,11 +106,25 @@ export default function VerifyEmailScreen() {
         <View
           style={[
             styles.msgBox,
-            { backgroundColor: status === 'error' ? colors.dangerLight : colors.successLight },
+            {
+              backgroundColor:
+                status === 'error' ? colors.dangerLight : colors.successLight,
+            },
           ]}
         >
+          <Ionicons
+            name={status === 'error' ? 'alert-circle' : 'checkmark-circle'}
+            size={18}
+            color={status === 'error' ? colors.danger : colors.success}
+          />
           <Text
-            style={[text.sm, { color: status === 'error' ? colors.danger : colors.success }]}
+            style={[
+              text.sm,
+              {
+                color: status === 'error' ? colors.danger : colors.success,
+                flex: 1,
+              },
+            ]}
           >
             {message}
           </Text>
@@ -108,29 +138,35 @@ export default function VerifyEmailScreen() {
           autoCapitalize="none"
           value={token}
           onChangeText={setToken}
+          placeholder="Paste code from email"
         />
         <Button
-          title="Verify"
+          title="Verify email"
           fullWidth
           size="lg"
           loading={status === 'verifying'}
           onPress={() => handleVerify()}
         />
 
-        <View style={{ height: 1, backgroundColor: colors.ink[100], marginVertical: spacing[3] }} />
+        <View style={styles.divider} />
 
-        <Input
-          label="Email"
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
+        <View>
+          <Text style={styles.resendLabel}>Didn't get the email?</Text>
+          <Input
+            label="Email"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
         <Button
-          title={resent ? 'Sent' : 'Resend verification email'}
+          title={resent ? 'Sent ✓' : 'Resend verification email'}
           variant="outline"
           fullWidth
+          size="lg"
           disabled={resent}
           onPress={handleResend}
         />
@@ -140,10 +176,52 @@ export default function VerifyEmailScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { marginTop: spacing[6], marginBottom: spacing[6] },
-  title: { ...text['3xl'], fontWeight: '700', color: colors.ink[900], marginBottom: spacing[2] },
-  subtitle: { ...text.base, color: colors.ink[500] },
-  msgBox: { padding: spacing[3], borderRadius: 8, marginBottom: spacing[4] },
+  brandRow: { marginTop: spacing[4], marginBottom: spacing[8] },
+  brand: {
+    ...text.lg,
+    fontWeight: '700',
+    color: colors.ink[900],
+    letterSpacing: 0.5,
+  },
+  header: { marginBottom: spacing[6] },
+  title: {
+    ...text['4xl'],
+    fontWeight: '700',
+    color: colors.ink[900],
+    marginBottom: spacing[2],
+    letterSpacing: -0.5,
+  },
+  subtitle: { ...text.base, color: colors.ink[500], lineHeight: 24 },
+  successWrap: { alignItems: 'center', marginTop: spacing[6] },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface[1],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[5],
+  },
+  msgBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    borderRadius: radius.lg,
+    marginBottom: spacing[4],
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.ink[100],
+    marginVertical: spacing[3],
+  },
+  resendLabel: {
+    ...text.sm,
+    fontWeight: '600',
+    color: colors.ink[700],
+    marginBottom: spacing[3],
+  },
 });
 
 export const options = { title: 'Verify Email' };

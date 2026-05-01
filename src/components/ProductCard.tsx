@@ -64,9 +64,9 @@ const styles = StyleSheet.create({
   body: { marginTop: spacing[2] },
   category: {
     ...text.xs,
-    color: colors.primary[600],
+    color: colors.ink[400],
     fontWeight: '600',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginBottom: 2,
   },
   name: {

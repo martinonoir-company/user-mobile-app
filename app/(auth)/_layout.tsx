@@ -11,9 +11,7 @@ export default function AuthLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,
-        headerTitle: '',
-        headerBackTitle: 'Back',
+        headerShown: false,
       }}
     />
   );
