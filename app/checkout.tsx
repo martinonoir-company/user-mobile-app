@@ -118,26 +118,38 @@ export default function CheckoutScreen() {
       });
       const order = res.data;
 
-      // Try to initiate payment; fall back to confirmation screen if provider not configured.
-      try {
-        const amount = parseInt(order.grandTotal, 10);
-        const pay = await api.initiatePayment({
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          amount,
-          currency: order.currency,
-          customerEmail: isAuthenticated ? 'customer@martinonoir.com' : guestEmail,
-          customerName: `${firstName} ${lastName}`.trim(),
-        });
-        if (pay.data.checkoutUrl) {
-          await WebBrowser.openBrowserAsync(pay.data.checkoutUrl);
-        }
-      } catch {
-        // Payment initiation optional — still land on confirmation with the order number.
+      // Begin payment. The server mediates all Paystack communication and
+      // returns the hosted-checkout URL.
+      const pay = await api.initiatePayment({
+        orderId: order.id,
+        channel: 'MOBILE',
+        customerEmail: isAuthenticated ? undefined : guestEmail,
+        customerName: `${firstName} ${lastName}`.trim(),
+      });
+
+      if (!pay.data.checkoutUrl) {
+        throw new Error('Could not start payment. Please try again.');
       }
 
+      // Cart is cleared only once we have a valid order + payment session.
       clearCart();
-      router.replace(`/order-confirmation?order=${order.orderNumber}`);
+
+      // Open the Paystack hosted page in an in-app browser. This resolves
+      // when the customer closes/finishes it.
+      await WebBrowser.openBrowserAsync(pay.data.checkoutUrl);
+
+      // Reconcile the payment server-side (the app never calls Paystack).
+      // The confirmation screen also re-checks, so a still-pending result
+      // here is fine — it will settle there.
+      try {
+        await api.reconcilePayment(pay.data.merchantReference);
+      } catch {
+        // Non-fatal — the confirmation screen reconciles again.
+      }
+
+      router.replace(
+        `/order-confirmation?order=${order.orderNumber}&ref=${encodeURIComponent(pay.data.merchantReference)}`,
+      );
     } catch (err: unknown) {
       const msg = (err as { message?: string | string[] })?.message;
       setError((Array.isArray(msg) ? msg[0] : msg) || 'Failed to place order.');

@@ -29,7 +29,7 @@ import {
 
 const API_BASE =
   (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ??
-  'http://10.0.2.2:3001/api/v1';
+  'https://api.martinonoir.com/api/v1';
 
 type OnUnauthorized = () => void;
 
@@ -260,29 +260,50 @@ class ApiClient {
   }
 
   // ── Payments ──
+  // The app never talks to a payment provider directly. It calls our
+  // server, which mediates all Paystack communication.
 
+  /**
+   * Begin payment for an order. The server reads the authoritative amount
+   * from the order, calls Paystack, and returns the hosted-checkout URL.
+   */
   async initiatePayment(input: {
     orderId: string;
-    orderNumber: string;
-    amount: number;
-    currency: string;
-    customerEmail: string;
-    customerName: string;
-    provider?: string;
+    channel?: 'STOREFRONT' | 'MOBILE' | 'POS';
+    customerEmail?: string;
+    customerName?: string;
+    callbackUrl?: string;
   }) {
     return this.request<{
-      data: { providerReference: string; checkoutUrl?: string; status: string; provider: string };
+      data: {
+        paymentId: string;
+        merchantReference: string;
+        checkoutUrl?: string;
+        status: string;
+        amount: number;
+        currency: string;
+      };
     }>('/payments/initiate', {
       method: 'POST',
-      body: JSON.stringify(input),
+      body: JSON.stringify({ channel: 'MOBILE', ...input }),
     });
   }
 
-  async verifyPayment(providerReference: string, provider: string) {
-    return this.request<{ data: { status: string; amount: number } }>('/payments/verify', {
-      method: 'POST',
-      body: JSON.stringify({ providerReference, provider }),
-    });
+  /**
+   * Ask the server to reconcile a payment with the provider and return
+   * the current status. Called after the hosted checkout closes.
+   */
+  async reconcilePayment(merchantReference: string) {
+    return this.request<{
+      data: {
+        paymentId: string;
+        merchantReference: string;
+        status: string;
+        amount: number;
+        currency: string;
+        failureReason?: string | null;
+      };
+    }>(`/payments/reconcile/${merchantReference}`, { method: 'POST' });
   }
 
   // ── Shipping ──

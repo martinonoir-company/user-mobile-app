@@ -10,8 +10,9 @@ import { formatPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
 
 export default function OrderConfirmationScreen() {
-  const params = useLocalSearchParams<{ order?: string }>();
+  const params = useLocalSearchParams<{ order?: string; ref?: string }>();
   const orderNumber = typeof params.order === 'string' ? params.order : '';
+  const paymentRef = typeof params.ref === 'string' ? params.ref : '';
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,12 +21,51 @@ export default function OrderConfirmationScreen() {
       setLoading(false);
       return;
     }
-    api
-      .getOrderByNumber(orderNumber)
-      .then((res) => setOrder(res.data))
-      .catch(() => setOrder(null))
-      .finally(() => setLoading(false));
-  }, [orderNumber]);
+    let cancelled = false;
+    let attempts = 0;
+
+    // Load the order. If a payment reference was passed, reconcile it
+    // server-side first, then re-check the order a few times so a lagging
+    // Paystack webhook still surfaces the PAID status here.
+    const run = async () => {
+      if (paymentRef) {
+        try {
+          await api.reconcilePayment(paymentRef);
+        } catch {
+          // Non-fatal — the order status below is the source of truth.
+        }
+      }
+      const poll = async () => {
+        if (cancelled) return;
+        try {
+          const res = await api.getOrderByNumber(orderNumber);
+          if (cancelled) return;
+          setOrder(res.data);
+          // If payment is still pending, give the webhook a moment.
+          if (
+            paymentRef &&
+            attempts < 4 &&
+            res.data.status !== 'PAID' &&
+            res.data.status !== 'PROCESSING' &&
+            res.data.status !== 'SHIPPED' &&
+            res.data.status !== 'DELIVERED'
+          ) {
+            attempts += 1;
+            setTimeout(poll, 3000);
+          }
+        } catch {
+          if (!cancelled) setOrder(null);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      };
+      await poll();
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderNumber, paymentRef]);
 
   if (loading) return <LoadingView />;
 
