@@ -47,6 +47,7 @@ export default function CheckoutScreen() {
   const [phone, setPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [showStates, setShowStates] = useState(false);
 
   const cur = currency ?? 'NGN';
@@ -81,6 +82,8 @@ export default function CheckoutScreen() {
         currency: cur,
         country: 'NG',
         state: stateValue,
+        couponCode: couponCode.trim() || undefined,
+        channel: 'MOBILE',
       });
       setQuote(res.data);
       setStep('review');
@@ -110,6 +113,7 @@ export default function CheckoutScreen() {
         currency: cur,
         guestEmail: !isAuthenticated ? guestEmail : undefined,
         customerNote: customerNote || undefined,
+        couponCode: couponCode.trim() || undefined,
         idempotencyKey: `checkout_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       });
       const order = res.data;
@@ -269,6 +273,13 @@ export default function CheckoutScreen() {
               numberOfLines={2}
               value={customerNote}
               onChangeText={setCustomerNote}
+            />
+            <Input
+              label="Promo code"
+              hint="Optional — applied at the next step"
+              autoCapitalize="characters"
+              value={couponCode}
+              onChangeText={setCouponCode}
             />
           </View>
 

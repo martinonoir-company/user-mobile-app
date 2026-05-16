@@ -91,6 +91,8 @@ export interface QuoteContext {
   state: string;
   couponCode?: string;
   shippingMethod?: string;
+  /** Sales channel — lets the server reject channel-scoped coupons. */
+  channel?: 'STOREFRONT' | 'MOBILE' | 'POS';
 }
 
 export interface QuoteResult {
