@@ -161,7 +161,7 @@ export default function CheckoutScreen() {
   if (items.length === 0) return null;
 
   return (
-    <Screen scroll keyboardAware>
+    <Screen scroll keyboardAware edges={['bottom']}>
       {/* Stepper */}
       <View style={styles.stepRow}>
         <StepPill label="Shipping" active={step === 'shipping'} done={step === 'review'} />

@@ -58,7 +58,7 @@ export default function TrackOrderScreen() {
   };
 
   return (
-    <Screen scroll keyboardAware>
+    <Screen scroll keyboardAware edges={['bottom']}>
       <Text style={styles.heading}>Track Order</Text>
       <Text style={styles.subhead}>Check the status of your delivery.</Text>
 

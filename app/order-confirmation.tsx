@@ -70,7 +70,7 @@ export default function OrderConfirmationScreen() {
   if (loading) return <LoadingView />;
 
   return (
-    <Screen scroll>
+    <Screen scroll edges={['bottom']}>
       <View style={styles.heroBox}>
         <View style={styles.checkCircle}>
           <Ionicons name="checkmark" size={36} color="#fff" />

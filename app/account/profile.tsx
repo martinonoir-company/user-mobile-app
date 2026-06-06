@@ -64,7 +64,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen scroll keyboardAware>
+    <Screen scroll keyboardAware edges={['bottom']}>
       <Text style={styles.heading}>Your Profile</Text>
       {profile?.email ? <Text style={styles.emailLine}>{profile.email}</Text> : null}
 

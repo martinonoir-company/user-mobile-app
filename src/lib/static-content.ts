@@ -97,7 +97,7 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
       {
         heading: 'Current openings',
         paragraphs: [
-          'We post roles as they open. To be considered for future positions, send a short note about yourself and your work to careers@martinonoir.com.',
+          'We post roles as they open. To be considered for future positions, send a short note about yourself and your work to mail@martinonoir.com.',
         ],
       },
       {
@@ -230,7 +230,7 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
       {
         heading: 'Media inquiries',
         paragraphs: [
-          `Email press@martinonoir.com. We respond within 24 hours on business days.`,
+          `Email mail@martinonoir.com. We respond within 24 hours on business days.`,
         ],
       },
       {

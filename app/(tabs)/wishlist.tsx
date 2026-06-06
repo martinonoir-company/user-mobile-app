@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingView } from '@/components/LoadingView';
@@ -119,17 +120,19 @@ export default function WishlistScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.gate}>
-        <Ionicons name="heart-outline" size={48} color={colors.ink[200]} />
-        <Text style={styles.gateTitle}>Sign In to View Wishlist</Text>
-        <Text style={styles.gateSub}>Save your favorite items for later.</Text>
-        <Button
-          title="Sign In"
-          onPress={() => router.push('/(auth)/login?next=/(tabs)/wishlist' as never)}
-          size="lg"
-          style={{ marginTop: spacing[5], minWidth: 200 }}
-        />
-      </View>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+        <View style={styles.gate}>
+          <Ionicons name="heart-outline" size={48} color={colors.ink[200]} />
+          <Text style={styles.gateTitle}>Sign In to View Wishlist</Text>
+          <Text style={styles.gateSub}>Save your favorite items for later.</Text>
+          <Button
+            title="Sign In"
+            onPress={() => router.push('/(auth)/login?next=/(tabs)/wishlist' as never)}
+            size="lg"
+            style={{ marginTop: spacing[5], minWidth: 200 }}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -137,25 +140,28 @@ export default function WishlistScreen() {
 
   if (items.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <EmptyState
-          icon={<Ionicons name="heart-outline" size={64} color={colors.ink[200]} />}
-          title="Your Wishlist is Empty"
-          subtitle="Browse our collection and save your favorites."
-          action={
-            <Button
-              title="Explore Products"
-              onPress={() => router.push('/(tabs)/shop')}
-              size="lg"
-              style={{ minWidth: 220 }}
-            />
-          }
-        />
-      </View>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <EmptyState
+            icon={<Ionicons name="heart-outline" size={64} color={colors.ink[200]} />}
+            title="Your Wishlist is Empty"
+            subtitle="Browse our collection and save your favorites."
+            action={
+              <Button
+                title="Explore Products"
+                onPress={() => router.push('/(tabs)/shop')}
+                size="lg"
+                style={{ minWidth: 220 }}
+              />
+            }
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
     <FlatList
       style={{ flex: 1, backgroundColor: colors.surface[0] }}
       data={items}
@@ -255,6 +261,7 @@ export default function WishlistScreen() {
         );
       }}
     />
+    </SafeAreaView>
   );
 }
 

@@ -1,16 +1,35 @@
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from '@/lib/auth-context';
+import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { CartProvider } from '@/lib/cart-context';
 import { colors } from '@/theme';
+
+// Keep the splash visible until auth bootstrap completes so users never see
+// a flash of the empty home screen before the persisted session is restored.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Already hidden / already initialized — safe to ignore.
+});
+
+function SplashGate({ children }: { children: React.ReactNode }) {
+  const { isLoading } = useAuth();
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading]);
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
+          <SplashGate>
           <CartProvider>
             <StatusBar style="dark" />
             <Stack
@@ -56,6 +75,7 @@ export default function RootLayout() {
               <Stack.Screen name="reset-password" options={{ headerShown: false }} />
             </Stack>
           </CartProvider>
+          </SplashGate>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
