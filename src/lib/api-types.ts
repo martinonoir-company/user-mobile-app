@@ -139,6 +139,8 @@ export interface CheckoutInput {
   customerNote?: string;
   guestEmail?: string;
   idempotencyKey?: string;
+  /** Marketing-agent referral code captured at checkout. */
+  agentCode?: string;
 }
 
 export interface Order {

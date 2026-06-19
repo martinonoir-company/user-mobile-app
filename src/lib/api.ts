@@ -243,6 +243,26 @@ class ApiClient {
     });
   }
 
+  /** Validate a marketing-agent code at checkout. */
+  async validateAgentCode(
+    code: string,
+  ): Promise<{ ok: true; agentName: string } | { ok: false; error: string }> {
+    try {
+      const res = await this.request<{
+        data: { agentId: string; code: string; agentName: string };
+      }>('/agents/validate-code', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
+      return { ok: true, agentName: res.data.agentName };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : 'Could not verify code',
+      };
+    }
+  }
+
   async getMyOrders(params?: { page?: number; limit?: number }) {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));

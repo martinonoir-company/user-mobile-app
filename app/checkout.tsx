@@ -48,6 +48,39 @@ export default function CheckoutScreen() {
   const [guestEmail, setGuestEmail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
+
+  // Marketing-agent referral code. Optional. We validate against the
+  // server before sending the order so a typo doesn't sit silently.
+  const [agentCode, setAgentCode] = useState('');
+  const [agentVerified, setAgentVerified] = useState<{
+    code: string;
+    name: string;
+  } | null>(null);
+  const [agentVerifying, setAgentVerifying] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
+
+  async function verifyAgentCode() {
+    const code = agentCode.trim().toUpperCase();
+    if (!code) return;
+    setAgentVerifying(true);
+    setAgentError(null);
+    try {
+      const res = await api.validateAgentCode(code);
+      if (res.ok) {
+        setAgentVerified({ code, name: res.agentName });
+      } else {
+        setAgentError(res.error);
+        setAgentVerified(null);
+      }
+    } catch (e) {
+      setAgentError(
+        e instanceof Error ? e.message : 'Could not verify code',
+      );
+      setAgentVerified(null);
+    } finally {
+      setAgentVerifying(false);
+    }
+  }
   const [showStates, setShowStates] = useState(false);
 
   const cur = currency ?? 'NGN';
@@ -114,6 +147,7 @@ export default function CheckoutScreen() {
         guestEmail: !isAuthenticated ? guestEmail : undefined,
         customerNote: customerNote || undefined,
         couponCode: couponCode.trim() || undefined,
+        agentCode: agentVerified?.code,
         idempotencyKey: `checkout_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       });
       const order = res.data;
@@ -293,6 +327,84 @@ export default function CheckoutScreen() {
               value={couponCode}
               onChangeText={setCouponCode}
             />
+            {/* Marketing-agent referral code. Server-validated before checkout. */}
+            {agentVerified ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: spacing[3],
+                  paddingHorizontal: spacing[3],
+                  paddingVertical: spacing[2] + 2,
+                  backgroundColor: '#ECFDF5',
+                  borderWidth: 1,
+                  borderColor: '#A7F3D0',
+                  borderRadius: 10,
+                }}
+              >
+                <View style={{ flexShrink: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: 'monospace',
+                      fontWeight: '700',
+                      color: '#047857',
+                    }}
+                  >
+                    ✓ {agentVerified.code}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.ink[500], marginTop: 2 }}>
+                    {agentVerified.name}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setAgentVerified(null);
+                    setAgentCode('');
+                    setAgentError(null);
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#B91C1C', textDecorationLine: 'underline' }}>
+                    Clear
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <Input
+                  label="Agent code (optional)"
+                  hint="If a marketing agent referred you, enter their code"
+                  autoCapitalize="characters"
+                  value={agentCode}
+                  onChangeText={(t) => {
+                    setAgentCode(t.toUpperCase());
+                    setAgentError(null);
+                  }}
+                />
+                {agentCode.trim().length > 0 && (
+                  <Button
+                    title={agentVerifying ? 'Verifying…' : 'Verify agent code'}
+                    onPress={verifyAgentCode}
+                    loading={agentVerifying}
+                    variant="secondary"
+                    fullWidth
+                    size="md"
+                    style={{ marginTop: spacing[2] }}
+                  />
+                )}
+                {agentError ? (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: '#B91C1C',
+                      marginTop: spacing[2],
+                    }}
+                  >
+                    ⚠ {agentError}
+                  </Text>
+                ) : null}
+              </>
+            )}
           </View>
 
           <Button
