@@ -49,9 +49,17 @@ export interface ProductVariant {
 export interface ProductMedia {
   id: string;
   url: string;
-  alt: string;
-  type: string;
+  /** Server-side field name is `altText`. */
+  alt?: string;
+  altText?: string;
+  type?: string;
+  mediaType?: 'IMAGE' | 'VIDEO';
   sortOrder: number;
+  /**
+   * NULL → product-level. Non-null → media specific to this variant,
+   * shown when the variant is selected on the PDP.
+   */
+  variantId?: string | null;
 }
 
 export interface Category {

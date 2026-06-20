@@ -66,6 +66,14 @@ export default function ProductDetailScreen() {
     [product, variantId],
   );
 
+  // Whenever the user picks a different variant, snap the carousel
+  // back to the first image so the dots and the displayed image agree
+  // when the media list swaps from product-level to variant-specific
+  // (and may have a different length).
+  useEffect(() => {
+    setActiveImage(0);
+  }, [selectedVariant?.id]);
+
   useEffect(() => {
     if (!selectedVariant?.trackInventory) {
       setStock(null);
@@ -173,7 +181,14 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const media = product.media ?? [];
+  // Show variant-specific media when the selected variant has any;
+  // otherwise fall back to the product's own gallery.
+  const allMedia = product.media ?? [];
+  const variantMedia = selectedVariant
+    ? allMedia.filter((m) => m.variantId === selectedVariant.id)
+    : [];
+  const productMediaList = allMedia.filter((m) => !m.variantId);
+  const media = variantMedia.length > 0 ? variantMedia : productMediaList;
   const stockLeft = stock ? stock.onHand - stock.reserved : null;
   const outOfStock = selectedVariant?.trackInventory && stockLeft !== null && stockLeft <= 0;
   const inactive = selectedVariant && !selectedVariant.isActive;
