@@ -119,6 +119,8 @@ export interface QuoteResult {
   subtotal: number;
   discountTotal: number;
   coupon?: { code: string; discountType: string; discountAmount: number };
+  /** Server-attached variant-scoped promotion. Customer never typed this. */
+  autoApply?: { code: string; discountType: string; discountAmount: number };
   shippingTotal: number;
   shippingMethod?: { carrier: string; service: string; estimatedDays: { min: number; max: number }; rate: number };
   availableShippingRates: Array<{ carrier: string; service: string; estimatedDays: { min: number; max: number }; rate: number; currency: string }>;

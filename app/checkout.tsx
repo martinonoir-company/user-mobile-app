@@ -456,7 +456,23 @@ export default function CheckoutScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Order Summary</Text>
             <SummaryRow label="Subtotal" value={formatPrice(quote.subtotal, cur)} />
-            {quote.discountTotal > 0 ? (
+            {quote.autoApply ? (
+              <SummaryRow
+                label={`🎁 Promo (${quote.autoApply.code})`}
+                value={`-${formatPrice(quote.autoApply.discountAmount, cur)}`}
+                tone="success"
+              />
+            ) : null}
+            {quote.coupon ? (
+              <SummaryRow
+                label={`Discount (${quote.coupon.code})`}
+                value={`-${formatPrice(quote.coupon.discountAmount, cur)}`}
+                tone="success"
+              />
+            ) : null}
+            {!quote.autoApply &&
+            !quote.coupon &&
+            quote.discountTotal > 0 ? (
               <SummaryRow
                 label="Discount"
                 value={`-${formatPrice(quote.discountTotal, cur)}`}
