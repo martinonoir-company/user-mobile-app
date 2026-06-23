@@ -75,6 +75,10 @@ export default function WishlistScreen() {
         Alert.alert('Unavailable', 'This product has no available variant.');
         return;
       }
+      const variantImage =
+        item.product.media?.find((m) => m.variantId === v.id)?.url ??
+        item.product.media?.find((m) => !m.variantId)?.url ??
+        item.product.media?.[0]?.url;
       addItem({
         variantId: v.id,
         productId: item.productId,
@@ -85,7 +89,7 @@ export default function WishlistScreen() {
         priceNgn: parseInt(v.retailPriceNgn, 10),
         priceUsd: parseInt(v.retailPriceUsd, 10),
         options: v.options ?? {},
-        imageUrl: item.product.media?.[0]?.url,
+        imageUrl: variantImage,
       });
       void handleRemove(item.productId);
     },
