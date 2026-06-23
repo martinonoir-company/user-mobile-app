@@ -22,6 +22,8 @@ import {
   QuoteItem,
   QuoteResult,
   ServerCartItem,
+  ShippingState,
+  ShippingTracking,
   StockLevel,
   UserProfile,
   WishlistItem,
@@ -277,6 +279,29 @@ class ApiClient {
 
   async getOrderByNumber(orderNumber: string) {
     return this.request<{ data: Order }>(`/orders/number/${orderNumber}`);
+  }
+
+  // ── Shipping (AAJ Express) ──
+
+  /** Post-payment dispatch progress for an order (poll every ~3s). */
+  async getShippingState(orderId: string) {
+    return this.request<{ data: ShippingState }>(
+      `/orders/${orderId}/shipping`,
+    );
+  }
+
+  /** Live tracking for the customer's own order (authenticated). */
+  async getOrderTracking(orderId: string) {
+    return this.request<{ data: ShippingTracking }>(
+      `/orders/${orderId}/tracking`,
+    );
+  }
+
+  /** Public tracking by order number — for the track-order screen. */
+  async trackByOrderNumber(orderNumber: string) {
+    return this.request<{ data: ShippingTracking }>(
+      `/orders/public/track/${encodeURIComponent(orderNumber)}`,
+    );
   }
 
   // ── Payments ──

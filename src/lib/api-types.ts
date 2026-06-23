@@ -151,6 +151,43 @@ export interface CheckoutInput {
   idempotencyKey?: string;
   /** Marketing-agent referral code captured at checkout. */
   agentCode?: string;
+  /** When true, skip AAJ shipping — no fee, no delivery booked. */
+  shippingOptOut?: boolean;
+}
+
+export interface ShippingTrackingEvent {
+  dateTime: string;
+  /** 0=LABEL_CREATED, 1=PICKED_UP, 2=IN_TRANSIT, 3=OUT_FOR_DELIVERY, 4=DELIVERED. */
+  status: number;
+  scanType: string;
+  description: string;
+  location: string;
+}
+
+export interface ShippingTracking {
+  orderNumber?: string;
+  trackingNumber: string | null;
+  status: number | null;
+  description: string;
+  etaDays?: number;
+  etaDate?: string;
+  events: ShippingTrackingEvent[];
+  labelUrl?: string | null;
+  optedOut: boolean;
+  pending: boolean;
+}
+
+export interface ShippingState {
+  orderId: string;
+  orderNumber: string;
+  optedOut: boolean;
+  bookingId: string | null;
+  trackingId: string | null;
+  labelUrl: string | null;
+  status: number | null;
+  progress: number;
+  lastError: string | null;
+  retryCount: number;
 }
 
 export interface Order {

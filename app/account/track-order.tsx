@@ -1,57 +1,41 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
-import { api } from '@/lib/api';
+import { api, ShippingTracking } from '@/lib/api';
 import { colors, radius, spacing, text } from '@/theme';
 
-type TrackingResult = {
-  trackingNumber: string;
-  carrier: string;
-  currentStatus: string;
-  events: Array<{ timestamp: string; status: string; location: string; description: string }>;
+const STATUS_LABELS: Record<number, string> = {
+  0: 'Label created',
+  1: 'Picked up',
+  2: 'In transit',
+  3: 'Out for delivery',
+  4: 'Delivered',
 };
 
 export default function TrackOrderScreen() {
-  const [mode, setMode] = useState<'order' | 'tracking'>('order');
   const [orderNumber, setOrderNumber] = useState('');
-  const [trackingNumber, setTrackingNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tracking, setTracking] = useState<TrackingResult | null>(null);
-  const [orderStatus, setOrderStatus] = useState<string | null>(null);
-
-  const reset = () => {
-    setError(null);
-    setTracking(null);
-    setOrderStatus(null);
-  };
+  const [tracking, setTracking] = useState<ShippingTracking | null>(null);
 
   const handleSubmit = async () => {
-    reset();
+    setError(null);
+    setTracking(null);
+    if (!orderNumber.trim()) {
+      setError('Enter an order number.');
+      return;
+    }
     setLoading(true);
     try {
-      if (mode === 'order') {
-        if (!orderNumber.trim()) {
-          setError('Enter an order number.');
-          return;
-        }
-        const res = await api.getOrderByNumber(orderNumber.trim());
-        setOrderStatus(res.data.status);
-      } else {
-        if (!trackingNumber.trim()) {
-          setError('Enter a tracking number.');
-          return;
-        }
-        const res = await api.trackShipment(trackingNumber.trim());
-        setTracking(res.data);
-      }
+      const res = await api.trackByOrderNumber(orderNumber.trim());
+      setTracking(res.data);
     } catch (err: unknown) {
       const msg = (err as { message?: string | string[] })?.message;
-      setError(Array.isArray(msg) ? msg[0]! : msg || 'Not found.');
+      setError(Array.isArray(msg) ? msg[0]! : msg || 'Order not found.');
     } finally {
       setLoading(false);
     }
@@ -62,32 +46,14 @@ export default function TrackOrderScreen() {
       <Text style={styles.heading}>Track Order</Text>
       <Text style={styles.subhead}>Check the status of your delivery.</Text>
 
-      <View style={styles.tabs}>
-        <Tab label="By Order #" active={mode === 'order'} onPress={() => setMode('order')} />
-        <Tab
-          label="By Tracking #"
-          active={mode === 'tracking'}
-          onPress={() => setMode('tracking')}
+      <View style={{ gap: spacing[4], marginTop: spacing[5] }}>
+        <Input
+          label="Order number"
+          autoCapitalize="characters"
+          placeholder="e.g. MN-260623-00042"
+          value={orderNumber}
+          onChangeText={setOrderNumber}
         />
-      </View>
-
-      <View style={{ gap: spacing[4], marginTop: spacing[4] }}>
-        {mode === 'order' ? (
-          <Input
-            label="Order number"
-            autoCapitalize="characters"
-            value={orderNumber}
-            onChangeText={setOrderNumber}
-          />
-        ) : (
-          <Input
-            label="Tracking number"
-            autoCapitalize="characters"
-            value={trackingNumber}
-            onChangeText={setTrackingNumber}
-          />
-        )}
-
         <Button
           title="Track"
           onPress={handleSubmit}
@@ -100,76 +66,79 @@ export default function TrackOrderScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {orderStatus ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order #{orderNumber}</Text>
-          <Badge label={orderStatus.replace(/_/g, ' ').toUpperCase()} tone="primary" />
-        </View>
-      ) : null}
-
       {tracking ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {tracking.carrier} • {tracking.trackingNumber}
-          </Text>
-          <Badge label={tracking.currentStatus} tone="primary" />
-          <ScrollView style={{ marginTop: spacing[4] }}>
-            {tracking.events.map((e, i) => (
-              <View key={i} style={styles.event}>
-                <Text style={styles.eventStatus}>{e.status}</Text>
-                <Text style={styles.eventDesc}>{e.description}</Text>
-                <Text style={styles.eventMeta}>
-                  {e.location} · {new Date(e.timestamp).toLocaleString()}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing[2],
+            }}
+          >
+            <Text style={styles.cardTitle}>
+              Order #{tracking.orderNumber ?? orderNumber.trim()}
+            </Text>
+            <Badge
+              label={
+                tracking.optedOut
+                  ? 'Self-pickup'
+                  : tracking.pending
+                    ? 'Preparing'
+                    : STATUS_LABELS[tracking.status ?? 0] ?? 'Processing'
+              }
+              tone={tracking.status === 4 ? 'success' : 'primary'}
+            />
+          </View>
+
+          {tracking.trackingNumber ? (
+            <Text style={styles.trackingNo}>AAJ {tracking.trackingNumber}</Text>
+          ) : null}
+
+          {tracking.optedOut ? (
+            <Text style={styles.eventDesc}>
+              This order was placed for self-pickup, so there is no delivery to
+              track.
+            </Text>
+          ) : tracking.pending ? (
+            <Text style={styles.eventDesc}>
+              {tracking.description ||
+                "We're still arranging your shipment. Check back shortly."}
+            </Text>
+          ) : (
+            <>
+              {tracking.etaDate && tracking.status !== 4 ? (
+                <Text style={styles.eta}>
+                  Estimated delivery{' '}
+                  {new Date(tracking.etaDate).toLocaleDateString('en-NG', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
                 </Text>
+              ) : null}
+              <View style={{ marginTop: spacing[3] }}>
+                {[...tracking.events].reverse().map((e, i) => (
+                  <View key={i} style={styles.event}>
+                    <Text style={styles.eventStatus}>{e.description}</Text>
+                    <Text style={styles.eventMeta}>
+                      {e.location ? `${e.location} · ` : ''}
+                      {new Date(e.dateTime).toLocaleString()}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </ScrollView>
+            </>
+          )}
         </View>
       ) : null}
     </Screen>
   );
 }
 
-function Tab({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Text
-      onPress={onPress}
-      style={[styles.tab, active && styles.tabActive]}
-    >
-      {label}
-    </Text>
-  );
-}
-
 const styles = StyleSheet.create({
   heading: { ...text['2xl'], fontWeight: '700', color: colors.ink[900], marginTop: spacing[4] },
   subhead: { ...text.sm, color: colors.ink[500], marginTop: 4 },
-  tabs: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[5],
-  },
-  tab: {
-    ...text.sm,
-    fontWeight: '600',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radius.full,
-    backgroundColor: colors.surface[1],
-    color: colors.ink[600],
-  },
-  tabActive: {
-    backgroundColor: colors.ink[900],
-    color: '#fff',
-  },
   error: { ...text.sm, color: colors.danger, marginTop: spacing[3] },
   card: {
     marginTop: spacing[5],
@@ -178,7 +147,14 @@ const styles = StyleSheet.create({
     borderColor: colors.ink[100],
     borderRadius: radius.xl,
   },
-  cardTitle: { ...text.base, fontWeight: '700', color: colors.ink[900], marginBottom: spacing[2] },
+  cardTitle: { ...text.base, fontWeight: '700', color: colors.ink[900] },
+  trackingNo: {
+    ...text.xs,
+    color: colors.ink[500],
+    fontFamily: 'monospace',
+    marginBottom: spacing[2],
+  },
+  eta: { ...text.sm, color: colors.ink[700], marginTop: spacing[1] },
   event: {
     paddingVertical: spacing[2],
     borderBottomWidth: 1,

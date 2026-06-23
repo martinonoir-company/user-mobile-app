@@ -44,10 +44,13 @@ export default function CheckoutScreen() {
   const [line2, setLine2] = useState('');
   const [city, setCity] = useState('');
   const [stateValue, setStateValue] = useState('Lagos');
+  const [postalCode, setPostalCode] = useState('');
   const [phone, setPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [customerNote, setCustomerNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
+  // Shipping opt-out: skip AAJ shipping, no fee, no delivery booked.
+  const [shippingOptOut, setShippingOptOut] = useState(false);
 
   // Marketing-agent referral code. Optional. We validate against the
   // server before sending the order so a typo doesn't sit silently.
@@ -140,6 +143,7 @@ export default function CheckoutScreen() {
           line2: line2 || undefined,
           city,
           state: stateValue,
+          postalCode: postalCode || undefined,
           country: 'NG',
           phone: phone || undefined,
         },
@@ -148,6 +152,7 @@ export default function CheckoutScreen() {
         customerNote: customerNote || undefined,
         couponCode: couponCode.trim() || undefined,
         agentCode: agentVerified?.code,
+        shippingOptOut,
         idempotencyKey: `checkout_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       });
       const order = res.data;
@@ -306,12 +311,41 @@ export default function CheckoutScreen() {
               </View>
             </View>
             <Input
+              label={shippingOptOut ? 'Postal code' : 'Postal code'}
+              required={!shippingOptOut}
+              keyboardType="number-pad"
+              value={postalCode}
+              onChangeText={setPostalCode}
+              textContentType="postalCode"
+              placeholder="100001"
+            />
+            <Input
               label="Phone"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
               textContentType="telephoneNumber"
             />
+
+            {/* Shipping opt-out */}
+            <Pressable
+              onPress={() => setShippingOptOut((v) => !v)}
+              style={styles.optOutRow}
+            >
+              <Ionicons
+                name={shippingOptOut ? 'checkbox' : 'square-outline'}
+                size={20}
+                color={shippingOptOut ? colors.primary[700] : colors.ink[400]}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[text.sm, { color: colors.ink[800] }]}>
+                  I don&apos;t need shipping
+                </Text>
+                <Text style={[text.xs, { color: colors.ink[400], marginTop: 2 }]}>
+                  No shipping fee; I&apos;ll arrange pickup myself.
+                </Text>
+              </View>
+            </Pressable>
             <Input
               label="Order note"
               hint="Optional special instructions"
@@ -481,12 +515,30 @@ export default function CheckoutScreen() {
             ) : null}
             <SummaryRow
               label="Shipping"
-              value={quote.shippingTotal === 0 ? 'Free' : formatPrice(quote.shippingTotal, cur)}
+              value={
+                shippingOptOut
+                  ? 'Not required'
+                  : quote.shippingTotal === 0
+                    ? 'Calculated at payment'
+                    : formatPrice(quote.shippingTotal, cur)
+              }
             />
+            {!shippingOptOut && quote.shippingTotal > 0 ? (
+              <Text style={[text.xs, { color: colors.ink[400], marginTop: -4 }]}>
+                AAJ Express estimate; final price may vary slightly.
+              </Text>
+            ) : null}
             <SummaryRow label="Tax" value={formatPrice(quote.taxTotal, cur)} />
             <View style={styles.totalLine}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatPrice(quote.grandTotal, cur)}</Text>
+              <Text style={styles.totalValue}>
+                {formatPrice(
+                  shippingOptOut
+                    ? quote.grandTotal - quote.shippingTotal
+                    : quote.grandTotal,
+                  cur,
+                )}
+              </Text>
             </View>
           </View>
 
@@ -625,6 +677,16 @@ const styles = StyleSheet.create({
   },
   cardTitle: { ...text.base, fontWeight: '700', color: colors.ink[900], marginBottom: spacing[4] },
   fieldLabel: { ...text.xs, fontWeight: '600', color: colors.ink[700], marginBottom: 6 },
+  optOutRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    padding: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.ink[200],
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface[1],
+  },
   select: {
     height: 46,
     paddingHorizontal: spacing[4],
