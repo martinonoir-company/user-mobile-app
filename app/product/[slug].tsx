@@ -230,14 +230,30 @@ export default function ProductDetailScreen() {
             ))}
           </ScrollView>
           {media.length > 1 ? (
-            <View style={styles.dots}>
-              {media.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, activeImage === i && styles.dotActive]}
-                />
-              ))}
-            </View>
+            <>
+              {/* Image counter */}
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>
+                  {activeImage + 1}/{media.length}
+                </Text>
+              </View>
+              {/* Swipe hint — fades out once the user has swiped. */}
+              {activeImage === 0 ? (
+                <View style={styles.swipeHint}>
+                  <Ionicons name="chevron-back" size={12} color="#fff" />
+                  <Text style={styles.swipeHintText}>Swipe for more</Text>
+                  <Ionicons name="chevron-forward" size={12} color="#fff" />
+                </View>
+              ) : null}
+              <View style={styles.dots}>
+                {media.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[styles.dot, activeImage === i && styles.dotActive]}
+                  />
+                ))}
+              </View>
+            </>
           ) : null}
         </View>
 
@@ -379,6 +395,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   dotActive: { backgroundColor: '#fff', width: 18 },
+  imageCounter: {
+    position: 'absolute',
+    top: spacing[3],
+    right: spacing[3],
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(17,17,17,0.6)',
+  },
+  imageCounterText: { ...text.xs, color: '#fff', fontWeight: '600' },
+  swipeHint: {
+    position: 'absolute',
+    bottom: spacing[6],
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing[3],
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(17,17,17,0.7)',
+  },
+  swipeHintText: { ...text.xs, color: '#fff', fontWeight: '600' },
   body: { padding: spacing[5] },
   category: {
     ...text.xs,
