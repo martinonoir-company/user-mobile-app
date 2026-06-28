@@ -215,7 +215,12 @@ export default function ProductDetailScreen() {
   const productMediaList = allMedia.filter((m) => !m.variantId);
   const media = variantMedia.length > 0 ? variantMedia : productMediaList;
   const stockLeft = stock ? stock.onHand - stock.reserved : null;
-  const outOfStock = selectedVariant?.trackInventory && stockLeft !== null && stockLeft <= 0;
+  // A tracked variant with NO stock-level row (stock === null) has nothing on
+  // hand → out of stock. Previously this fell through to "addable" and the
+  // server then rejected the order at checkout with "available 0".
+  const outOfStock =
+    !!selectedVariant?.trackInventory &&
+    (stock === null || (stockLeft !== null && stockLeft <= 0));
   const inactive = selectedVariant && !selectedVariant.isActive;
   const wholesaleQtyNum = parseInt(wholesaleQty, 10) || 0;
   const wholesaleQtyOk = !isWholesaleMode || wholesaleQtyNum >= MIN_WHOLESALE_QTY;
@@ -303,9 +308,9 @@ export default function ProductDetailScreen() {
 
           {/* Stock badge */}
           {selectedVariant?.trackInventory ? (
-            stockLeft === null ? null : stockLeft <= 0 ? (
-              <Badge tone="danger" label="Out of stock" />
-            ) : stockLeft <= 5 ? (
+            outOfStock ? (
+              <Badge tone="danger" label="Out of stock: restocking" />
+            ) : stockLeft === null ? null : stockLeft <= 5 ? (
               <Badge tone="warning" label={`Only ${stockLeft} left`} />
             ) : (
               <Badge tone="success" label="In stock" />
@@ -408,7 +413,7 @@ export default function ProductDetailScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Button
-            title={outOfStock ? 'Out of stock' : inactive ? 'Unavailable' : 'Add to Bag'}
+            title={outOfStock ? 'Out of stock: restocking' : inactive ? 'Unavailable' : 'Add to Bag'}
             onPress={onAddToCart}
             disabled={!canAdd}
             loading={addingToCart}
