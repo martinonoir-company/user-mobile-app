@@ -18,7 +18,7 @@ import { api, Product, ProductVariant, StockLevel } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice, getVariantPriceMinor } from '@/lib/price';
-import { MIN_WHOLESALE_QTY } from '@/lib/wholesale';
+import { useWholesaleMinQty } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -35,6 +35,8 @@ export default function ProductDetailScreen() {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [stock, setStock] = useState<StockLevel | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
+  // Admin-configured wholesale minimum order quantity.
+  const MIN_WHOLESALE_QTY = useWholesaleMinQty();
   // Wholesale: when on, line is priced at wholesale and qty must be ≥ minimum.
   const [isWholesaleMode, setIsWholesaleMode] = useState(false);
   const [wholesaleQty, setWholesaleQty] = useState(String(MIN_WHOLESALE_QTY));
@@ -343,7 +345,14 @@ export default function ProductDetailScreen() {
           {canAdd || isWholesaleMode ? (
             <View style={{ marginTop: spacing[6] }}>
               <Pressable
-                onPress={() => setIsWholesaleMode((v) => !v)}
+                onPress={() =>
+                  setIsWholesaleMode((v) => {
+                    const next = !v;
+                    // Seed the qty to the (configured) minimum when turning on.
+                    if (next) setWholesaleQty(String(MIN_WHOLESALE_QTY));
+                    return next;
+                  })
+                }
                 style={[
                   styles.wholesaleToggle,
                   isWholesaleMode && styles.wholesaleToggleOn,

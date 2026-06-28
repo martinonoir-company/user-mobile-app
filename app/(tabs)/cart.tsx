@@ -10,13 +10,14 @@ import { TopBar } from '@/components/TopBar';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/price';
-import { MIN_WHOLESALE_QTY } from '@/lib/wholesale';
+import { useWholesaleMinQty } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
 
 export default function CartScreen() {
   const { items, itemCount, syncing, updateQuantity, removeItem, clearCart, getSubtotal } =
     useCart();
   const { currency } = useAuth();
+  const MIN_WHOLESALE_QTY = useWholesaleMinQty();
 
   const subtotal = getSubtotal(currency);
   const hasUnavailable = items.some((i) => i.unavailable);

@@ -227,6 +227,13 @@ class ApiClient {
     return this.request<{ data: Product }>(`/products/${id}`);
   }
 
+  /** Public store config (e.g. wholesale minimum quantity). */
+  async getPublicConfig() {
+    return this.request<{ data: { wholesaleMinQty: number } }>(
+      `/settings/public`,
+    );
+  }
+
   // ── Quote ──
 
   async getQuote(items: QuoteItem[], context: QuoteContext) {
