@@ -511,7 +511,40 @@ export default function CheckoutScreen() {
                 Wholesale order
               </Text>
             ) : null}
-            <SummaryRow label="Subtotal" value={formatPrice(quote.subtotal, cur)} />
+            {(() => {
+              // quote.subtotal already uses the wholesale unit price for
+              // wholesale lines. Compute the retail subtotal to strike through.
+              const retailSubtotal = items.reduce((s, i) => {
+                const retail =
+                  (cur === 'USD' ? i.retailPriceUsd : i.retailPriceNgn) ??
+                  (cur === 'USD' ? i.priceUsd : i.priceNgn);
+                return s + retail * i.quantity;
+              }, 0);
+              const showWholesale =
+                items.some((i) => i.isWholesale) &&
+                retailSubtotal > quote.subtotal;
+              return showWholesale ? (
+                <>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Subtotal</Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        { textDecorationLine: 'line-through', color: colors.ink[400] },
+                      ]}
+                    >
+                      {formatPrice(retailSubtotal, cur)}
+                    </Text>
+                  </View>
+                  <SummaryRow
+                    label="Wholesale subtotal"
+                    value={formatPrice(quote.subtotal, cur)}
+                  />
+                </>
+              ) : (
+                <SummaryRow label="Subtotal" value={formatPrice(quote.subtotal, cur)} />
+              );
+            })()}
             {quote.autoApply ? (
               <SummaryRow
                 label={`🎁 Promo (${quote.autoApply.code})`}

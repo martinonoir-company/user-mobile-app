@@ -20,8 +20,16 @@ export interface CartItem {
   variantName: string;
   sku: string;
   quantity: number;
+  /** Effective unit price (wholesale price for a wholesale line, else retail). */
   priceNgn: number;
   priceUsd: number;
+  /**
+   * The variant's RETAIL unit price, kept alongside the effective price so the
+   * checkout can show the struck-through retail subtotal for wholesale lines.
+   * Equals priceNgn/priceUsd for retail lines.
+   */
+  retailPriceNgn?: number;
+  retailPriceUsd?: number;
   currentPriceNgn: number | null;
   currentPriceUsd: number | null;
   priceChanged: boolean;
@@ -82,6 +90,8 @@ async function loadGuestCart(): Promise<CartItem[]> {
           quantity: Number(r.quantity ?? 1),
           priceNgn: Number(r.priceNgn ?? 0),
           priceUsd: Number(r.priceUsd ?? 0),
+          retailPriceNgn: r.retailPriceNgn ?? undefined,
+          retailPriceUsd: r.retailPriceUsd ?? undefined,
           currentPriceNgn: r.currentPriceNgn ?? null,
           currentPriceUsd: r.currentPriceUsd ?? null,
           priceChanged: Boolean(r.priceChanged ?? false),

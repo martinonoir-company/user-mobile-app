@@ -148,6 +148,8 @@ export default function ProductDetailScreen() {
           sku: selectedVariant.sku,
           priceNgn,
           priceUsd,
+          retailPriceNgn: parseInt(selectedVariant.retailPriceNgn, 10),
+          retailPriceUsd: parseInt(selectedVariant.retailPriceUsd, 10),
           options: selectedVariant.options ?? {},
           imageUrl: variantImage,
           isWholesale: isWholesaleMode,
