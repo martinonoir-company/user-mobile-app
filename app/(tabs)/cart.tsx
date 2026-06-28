@@ -10,6 +10,7 @@ import { TopBar } from '@/components/TopBar';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/price';
+import { MIN_WHOLESALE_QTY } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
 
 export default function CartScreen() {
@@ -52,7 +53,7 @@ export default function CartScreen() {
         </View>
 
         {items.map((item) => (
-          <View key={item.variantId} style={styles.row}>
+          <View key={`${item.variantId}:${item.isWholesale ? 'W' : 'R'}`} style={styles.row}>
             <Pressable
               onPress={() => router.push(`/product/${item.productSlug}` as never)}
               style={styles.imageBox}
@@ -76,6 +77,11 @@ export default function CartScreen() {
                 <Text style={styles.variant}>{item.variantName}</Text>
               ) : null}
               <Text style={styles.sku}>SKU: {item.sku}</Text>
+              {item.isWholesale ? (
+                <View style={{ marginTop: 4, alignSelf: 'flex-start' }}>
+                  <Badge tone="warning" label="Wholesale" />
+                </View>
+              ) : null}
 
               {item.unavailable ? (
                 <View style={{ marginTop: 4 }}>
@@ -96,14 +102,27 @@ export default function CartScreen() {
               <View style={styles.ctrlRow}>
                 <View style={styles.qtyBox}>
                   <Pressable
-                    onPress={() => updateQuantity(item.variantId, item.quantity - 1)}
+                    onPress={() =>
+                      updateQuantity(
+                        item.variantId,
+                        item.quantity - 1,
+                        item.isWholesale,
+                      )
+                    }
+                    disabled={item.isWholesale && item.quantity <= MIN_WHOLESALE_QTY}
                     style={styles.qtyBtn}
                   >
                     <Ionicons name="remove" size={16} color={colors.ink[700]} />
                   </Pressable>
                   <Text style={styles.qtyText}>{item.quantity}</Text>
                   <Pressable
-                    onPress={() => updateQuantity(item.variantId, item.quantity + 1)}
+                    onPress={() =>
+                      updateQuantity(
+                        item.variantId,
+                        item.quantity + 1,
+                        item.isWholesale,
+                      )
+                    }
                     style={styles.qtyBtn}
                   >
                     <Ionicons name="add" size={16} color={colors.ink[700]} />
@@ -117,7 +136,7 @@ export default function CartScreen() {
                       currency,
                     )}
                   </Text>
-                  <Pressable onPress={() => removeItem(item.variantId)} hitSlop={8}>
+                  <Pressable onPress={() => removeItem(item.variantId, item.isWholesale)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={18} color={colors.ink[400]} />
                   </Pressable>
                 </View>

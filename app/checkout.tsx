@@ -135,7 +135,11 @@ export default function CheckoutScreen() {
     setPlacing(true);
     try {
       const res = await api.checkout({
-        items: items.map((i) => ({ variantId: i.variantId, quantity: i.quantity })),
+        items: items.map((i) => ({
+          variantId: i.variantId,
+          quantity: i.quantity,
+          wholesale: i.isWholesale,
+        })),
         shippingAddress: {
           firstName,
           lastName,
@@ -489,6 +493,24 @@ export default function CheckoutScreen() {
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Order Summary</Text>
+            {items.some((i) => i.isWholesale) ? (
+              <Text
+                style={{
+                  ...text.xs,
+                  fontWeight: '700',
+                  color: '#92400E',
+                  backgroundColor: '#FEF3C7',
+                  alignSelf: 'flex-start',
+                  paddingHorizontal: spacing[2],
+                  paddingVertical: 2,
+                  borderRadius: radius.sm,
+                  marginBottom: spacing[2],
+                  textTransform: 'uppercase',
+                }}
+              >
+                Wholesale order
+              </Text>
+            ) : null}
             <SummaryRow label="Subtotal" value={formatPrice(quote.subtotal, cur)} />
             {quote.autoApply ? (
               <SummaryRow

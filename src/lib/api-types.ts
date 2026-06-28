@@ -131,7 +131,7 @@ export interface QuoteResult {
 }
 
 export interface CheckoutInput {
-  items: Array<{ variantId: string; quantity: number }>;
+  items: Array<{ variantId: string; quantity: number; wholesale?: boolean }>;
   shippingAddress: {
     firstName: string;
     lastName: string;
@@ -251,6 +251,7 @@ export interface ServerCartItem {
   unavailable: boolean;
   options: Record<string, string> | null;
   imageUrl: string | null;
+  isWholesale?: boolean;
   createdAt: string;
   updatedAt: string;
 }

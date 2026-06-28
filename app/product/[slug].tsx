@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Badge } from '@/components/Badge';
@@ -17,6 +18,7 @@ import { api, Product, ProductVariant, StockLevel } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice, getVariantPriceMinor } from '@/lib/price';
+import { MIN_WHOLESALE_QTY } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -33,6 +35,9 @@ export default function ProductDetailScreen() {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [stock, setStock] = useState<StockLevel | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
+  // Wholesale: when on, line is priced at wholesale and qty must be ≥ minimum.
+  const [isWholesaleMode, setIsWholesaleMode] = useState(false);
+  const [wholesaleQty, setWholesaleQty] = useState(String(MIN_WHOLESALE_QTY));
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistError, setWishlistError] = useState<string | null>(null);
@@ -113,6 +118,8 @@ export default function ProductDetailScreen() {
 
   const onAddToCart = async () => {
     if (!product || !selectedVariant || addingToCart) return;
+    const qty = isWholesaleMode ? parseInt(wholesaleQty, 10) || 0 : 1;
+    if (isWholesaleMode && qty < MIN_WHOLESALE_QTY) return;
     setAddingToCart(true);
     try {
       // Cart thumbnail: prefer an image tagged to the selected variant
@@ -122,18 +129,29 @@ export default function ProductDetailScreen() {
         product.media?.find((m) => m.variantId === selectedVariant.id)?.url ??
         product.media?.find((m) => !m.variantId)?.url ??
         product.media?.[0]?.url;
-      addItem({
-        variantId: selectedVariant.id,
-        productId: product.id,
-        productName: product.name,
-        productSlug: product.slug,
-        variantName: selectedVariant.name,
-        sku: selectedVariant.sku,
-        priceNgn: parseInt(selectedVariant.retailPriceNgn, 10),
-        priceUsd: parseInt(selectedVariant.retailPriceUsd, 10),
-        options: selectedVariant.options ?? {},
-        imageUrl: variantImage,
-      });
+      // Wholesale lines carry the wholesale price; server re-derives at checkout.
+      const priceNgn = isWholesaleMode
+        ? parseInt(selectedVariant.wholesalePriceNgn, 10)
+        : parseInt(selectedVariant.retailPriceNgn, 10);
+      const priceUsd = isWholesaleMode
+        ? parseInt(selectedVariant.wholesalePriceUsd, 10)
+        : parseInt(selectedVariant.retailPriceUsd, 10);
+      addItem(
+        {
+          variantId: selectedVariant.id,
+          productId: product.id,
+          productName: product.name,
+          productSlug: product.slug,
+          variantName: selectedVariant.name,
+          sku: selectedVariant.sku,
+          priceNgn,
+          priceUsd,
+          options: selectedVariant.options ?? {},
+          imageUrl: variantImage,
+          isWholesale: isWholesaleMode,
+        },
+        qty,
+      );
     } finally {
       // Give the optimistic update a tick before unlocking so the button can
       // display a small success pulse.
@@ -199,8 +217,19 @@ export default function ProductDetailScreen() {
   const stockLeft = stock ? stock.onHand - stock.reserved : null;
   const outOfStock = selectedVariant?.trackInventory && stockLeft !== null && stockLeft <= 0;
   const inactive = selectedVariant && !selectedVariant.isActive;
-  const canAdd = !!selectedVariant && !outOfStock && !inactive;
-  const priceMinor = selectedVariant ? getVariantPriceMinor(selectedVariant, currency) : 0;
+  const wholesaleQtyNum = parseInt(wholesaleQty, 10) || 0;
+  const wholesaleQtyOk = !isWholesaleMode || wholesaleQtyNum >= MIN_WHOLESALE_QTY;
+  const canAdd = !!selectedVariant && !outOfStock && !inactive && wholesaleQtyOk;
+  // Show wholesale unit price when wholesale mode is on.
+  const priceMinor = selectedVariant
+    ? isWholesaleMode
+      ? Number(
+          currency === 'USD'
+            ? selectedVariant.wholesalePriceUsd
+            : selectedVariant.wholesalePriceNgn,
+        )
+      : getVariantPriceMinor(selectedVariant, currency)
+    : 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface[0] }}>
@@ -302,6 +331,50 @@ export default function ProductDetailScreen() {
                   />
                 ))}
               </View>
+            </View>
+          ) : null}
+
+          {/* Wholesale toggle */}
+          {canAdd || isWholesaleMode ? (
+            <View style={{ marginTop: spacing[6] }}>
+              <Pressable
+                onPress={() => setIsWholesaleMode((v) => !v)}
+                style={[
+                  styles.wholesaleToggle,
+                  isWholesaleMode && styles.wholesaleToggleOn,
+                ]}
+              >
+                <Ionicons
+                  name={isWholesaleMode ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={isWholesaleMode ? colors.warning : colors.ink[400]}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.wholesaleTitle}>Buy wholesale</Text>
+                  <Text style={styles.wholesaleSub}>
+                    Wholesale pricing for bulk purchases
+                  </Text>
+                </View>
+              </Pressable>
+              {isWholesaleMode ? (
+                <View style={{ marginTop: spacing[3] }}>
+                  <Text style={styles.wholesaleNote}>
+                    Minimum order quantity for wholesale is {MIN_WHOLESALE_QTY}.
+                  </Text>
+                  <Text style={styles.sectionLabel}>Wholesale quantity</Text>
+                  <TextInput
+                    value={wholesaleQty}
+                    onChangeText={(t) => setWholesaleQty(t.replace(/[^0-9]/g, ''))}
+                    keyboardType="number-pad"
+                    style={styles.qtyInput}
+                  />
+                  {wholesaleQtyNum < MIN_WHOLESALE_QTY ? (
+                    <Text style={styles.qtyError}>
+                      Enter at least {MIN_WHOLESALE_QTY} to add a wholesale order.
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -458,6 +531,39 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: spacing[3],
   },
+  wholesaleToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    borderWidth: 2,
+    borderColor: colors.ink[200],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  wholesaleToggleOn: { borderColor: colors.warning, backgroundColor: '#FFFBEB' },
+  wholesaleTitle: { ...text.sm, fontWeight: '700', color: colors.ink[900] },
+  wholesaleSub: { ...text.xs, color: colors.ink[500] },
+  wholesaleNote: {
+    ...text.xs,
+    color: '#92400E',
+    backgroundColor: '#FEF3C7',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    marginBottom: spacing[3],
+  },
+  qtyInput: {
+    ...text.base,
+    borderWidth: 1,
+    borderColor: colors.ink[200],
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    width: 120,
+    color: colors.ink[900],
+  },
+  qtyError: { ...text.xs, color: colors.danger, marginTop: spacing[2] },
   variantRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   variantChip: {
     paddingHorizontal: spacing[4],

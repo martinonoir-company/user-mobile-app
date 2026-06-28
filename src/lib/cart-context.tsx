@@ -28,6 +28,13 @@ export interface CartItem {
   unavailable: boolean;
   options: Record<string, string>;
   imageUrl?: string;
+  /** true for a wholesale line; identity is (variantId, isWholesale). */
+  isWholesale: boolean;
+}
+
+/** Stable identity for a cart line — a variant may be both retail + wholesale. */
+export function lineKey(variantId: string, isWholesale: boolean): string {
+  return `${variantId}:${isWholesale ? 'W' : 'R'}`;
 }
 
 interface CartContextValue {
@@ -37,12 +44,17 @@ interface CartContextValue {
   addItem: (
     item: Omit<
       CartItem,
-      'quantity' | 'currentPriceNgn' | 'currentPriceUsd' | 'priceChanged' | 'unavailable'
-    >,
+      | 'quantity'
+      | 'currentPriceNgn'
+      | 'currentPriceUsd'
+      | 'priceChanged'
+      | 'unavailable'
+      | 'isWholesale'
+    > & { isWholesale?: boolean },
     quantity?: number,
   ) => void;
-  removeItem: (variantId: string) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
+  removeItem: (variantId: string, isWholesale?: boolean) => void;
+  updateQuantity: (variantId: string, quantity: number, isWholesale?: boolean) => void;
   clearCart: () => void;
   getSubtotal: (currency: string) => number;
   refresh: () => Promise<void>;
@@ -76,6 +88,7 @@ async function loadGuestCart(): Promise<CartItem[]> {
           unavailable: Boolean(r.unavailable ?? false),
           options: (r.options ?? {}) as Record<string, string>,
           imageUrl: r.imageUrl,
+          isWholesale: Boolean(r.isWholesale ?? false),
         };
       })
       .filter((i) => i.variantId);
@@ -117,6 +130,7 @@ function fromServer(row: ServerCartItem): CartItem {
     unavailable: Boolean(row.unavailable),
     options: row.options ?? {},
     imageUrl: row.imageUrl ?? undefined,
+    isWholesale: Boolean(row.isWholesale ?? false),
   };
 }
 
@@ -210,17 +224,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback<CartContextValue['addItem']>(
     (item, quantity = 1) => {
+      const ws = item.isWholesale ?? false;
+      const key = lineKey(item.variantId, ws);
       setItems((prev) => {
-        const existing = prev.find((i) => i.variantId === item.variantId);
+        const existing = prev.find(
+          (i) => lineKey(i.variantId, i.isWholesale) === key,
+        );
         if (existing) {
           return prev.map((i) =>
-            i.variantId === item.variantId ? { ...i, quantity: i.quantity + quantity } : i,
+            lineKey(i.variantId, i.isWholesale) === key
+              ? { ...i, quantity: i.quantity + quantity }
+              : i,
           );
         }
         return [
           ...prev,
           {
             ...item,
+            isWholesale: ws,
             quantity,
             currentPriceNgn: null,
             currentPriceUsd: null,
@@ -233,7 +254,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (isAuthenticated) {
         setSyncing(true);
         api
-          .addToCart(item.variantId, quantity)
+          .addToCart(item.variantId, quantity, ws)
           .then(() => api.getCart())
           .then((res) => setItems(res.data.map(fromServer)))
           .catch(() =>
@@ -249,13 +270,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const removeItem = useCallback(
-    (variantId: string) => {
+    (variantId: string, isWholesale = false) => {
+      const key = lineKey(variantId, isWholesale);
       const snapshot = items;
-      setItems((prev) => prev.filter((i) => i.variantId !== variantId));
+      setItems((prev) =>
+        prev.filter((i) => lineKey(i.variantId, i.isWholesale) !== key),
+      );
       if (isAuthenticated) {
         setSyncing(true);
         api
-          .removeFromCart(variantId)
+          .removeFromCart(variantId, isWholesale)
           .catch(() => setItems(snapshot))
           .finally(() => setSyncing(false));
       }
@@ -264,21 +288,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const updateQuantity = useCallback(
-    (variantId: string, quantity: number) => {
+    (variantId: string, quantity: number, isWholesale = false) => {
+      const key = lineKey(variantId, isWholesale);
       const snapshot = items;
       if (quantity <= 0) {
-        setItems((prev) => prev.filter((i) => i.variantId !== variantId));
+        setItems((prev) =>
+          prev.filter((i) => lineKey(i.variantId, i.isWholesale) !== key),
+        );
       } else {
         setItems((prev) =>
-          prev.map((i) => (i.variantId === variantId ? { ...i, quantity } : i)),
+          prev.map((i) =>
+            lineKey(i.variantId, i.isWholesale) === key ? { ...i, quantity } : i,
+          ),
         );
       }
       if (isAuthenticated) {
         setSyncing(true);
         const p =
           quantity <= 0
-            ? api.removeFromCart(variantId)
-            : api.updateCartQuantity(variantId, quantity);
+            ? api.removeFromCart(variantId, isWholesale)
+            : api.updateCartQuantity(variantId, quantity, isWholesale);
         p.catch(() => setItems(snapshot)).finally(() => setSyncing(false));
       }
     },
