@@ -134,6 +134,8 @@ function fromServer(row: ServerCartItem): CartItem {
     quantity: row.quantity,
     priceNgn: Number(row.priceNgn),
     priceUsd: Number(row.priceUsd),
+    retailPriceNgn: row.retailPriceNgn != null ? Number(row.retailPriceNgn) : undefined,
+    retailPriceUsd: row.retailPriceUsd != null ? Number(row.retailPriceUsd) : undefined,
     currentPriceNgn: row.currentPriceNgn != null ? Number(row.currentPriceNgn) : null,
     currentPriceUsd: row.currentPriceUsd != null ? Number(row.currentPriceUsd) : null,
     priceChanged: Boolean(row.priceChanged),
