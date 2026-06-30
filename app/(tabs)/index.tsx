@@ -11,30 +11,40 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ProductCard } from '@/components/ProductCard';
-import { TopBar } from '@/components/TopBar';
 import { api, Category, Product } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { getStartingPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
 
+/**
+ * Home screen — dark, editorial "Martinonoir Collection" layout.
+ *
+ * Data flow is unchanged from the previous design: one parallel fetch on
+ * mount (+ pull-to-refresh) for categories, featured products (Curated
+ * Picks), and the hero. Rails render empty rather than crashing on error.
+ */
 export default function HomeScreen() {
-  const { currency, user } = useAuth();
+  const { currency } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featured, setFeatured] = useState<Product[]>([]);
-  const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [catRes, featRes, newRes] = await Promise.all([
+      const [catRes, featRes] = await Promise.all([
         api.getCategories(),
         api.getProducts({ featured: true, limit: 6 }),
-        api.getProducts({ limit: 6 }),
       ]);
       setCategories(catRes.data);
-      setFeatured(featRes.data.items);
-      setNewArrivals(newRes.data.items);
+      // Fall back to newest products if no products are flagged featured, so
+      // Curated Picks is never empty when the catalogue has items.
+      if (featRes.data.items.length > 0) {
+        setFeatured(featRes.data.items);
+      } else {
+        const newest = await api.getProducts({ limit: 6 });
+        setFeatured(newest.data.items);
+      }
     } catch {
       // Render empty rails rather than crash the whole home screen.
     }
@@ -57,71 +67,97 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [load]);
 
-  const greeting = (() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  })();
+  // Lead featured product photo for the hero backdrop (optional).
+  const heroImage = featured[0]?.media?.[0]?.url;
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
-      <TopBar />
+    <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentGold}
+          />
+        }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: spacing[10] }}
       >
-        {/* Greeting */}
-        <View style={styles.greetingRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.greetingLabel}>{greeting}{user ? ',' : ''}</Text>
-            <Text style={styles.greetingName} numberOfLines={1}>
-              {user?.email ? user.email.split('@')[0] : 'Welcome'}
-            </Text>
-          </View>
+        {/* Minimal dark header — brand + search */}
+        <View style={styles.header}>
+          <Text style={styles.brand}>
+            MARTINO<Text style={styles.brandAccent}>NOIR</Text>
+          </Text>
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.iconBtn, pressed && { opacity: 0.6 }]}
+            accessibilityLabel="Search"
+          >
+            <Ionicons name="search" size={20} color="#fff" />
+          </Pressable>
         </View>
 
-        {/* Hero */}
+        {/* Hero — uses the lead featured product photo over a dark scrim so
+            it always has real imagery without bundling a static asset. The
+            dark base shows through until/if the image loads. */}
         <Pressable
           onPress={() => router.push('/(tabs)/shop')}
-          style={({ pressed }) => [styles.hero, pressed && { opacity: 0.95 }]}
+          style={({ pressed }) => [styles.hero, pressed && { opacity: 0.96 }]}
         >
-          <View style={styles.heroOverlay} />
+          {heroImage ? (
+            <Image
+              source={heroImage}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={250}
+            />
+          ) : null}
+          <View style={styles.heroScrim} />
           <View style={styles.heroContent}>
-            <Text style={styles.heroEyebrow}>NEW SEASON</Text>
-            <Text style={styles.heroTitle}>
-              Crafted{'\n'}in Lagos.
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Signature leather goods designed for everyday elegance.
-            </Text>
+            <Text style={styles.heroEyebrow}>NEW RELEASE</Text>
+            <Text style={styles.heroTitle}>THE{'\n'}MARTINONOIR{'\n'}COLLECTION</Text>
             <View style={styles.heroCta}>
-              <Text style={styles.heroCtaText}>Shop the collection</Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.ink[900]} />
+              <Text style={styles.heroCtaText}>SHOP NOW</Text>
             </View>
           </View>
         </Pressable>
 
-        {/* Category chips */}
-        <View style={{ marginTop: spacing[6] }}>
-          <SectionHeader title="Browse" />
+        {/* Collections */}
+        <View style={{ marginTop: spacing[8] }}>
+          <SectionHeader
+            title="COLLECTIONS"
+            actionLabel="View All"
+            onAction={() => router.push('/(tabs)/shop')}
+          />
           {loading && categories.length === 0 ? (
-            <ChipSkeleton />
+            <CollectionsSkeleton />
           ) : (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
+              contentContainerStyle={styles.collRow}
             >
-              {categories.slice(0, 10).map((cat) => (
+              {categories.slice(0, 12).map((cat) => (
                 <Pressable
                   key={cat.id}
                   onPress={() => router.push(`/category/${cat.slug}` as never)}
-                  style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.collItem, pressed && { opacity: 0.7 }]}
                 >
-                  <Text style={styles.chipText} numberOfLines={1}>
-                    {cat.name}
+                  <View style={styles.collThumb}>
+                    {cat.imageUrl ? (
+                      <Image
+                        source={cat.imageUrl}
+                        style={StyleSheet.absoluteFill}
+                        contentFit="cover"
+                        transition={150}
+                      />
+                    ) : (
+                      <Ionicons name="bag-handle-outline" size={22} color={colors.ink[400]} />
+                    )}
+                  </View>
+                  <Text style={styles.collLabel} numberOfLines={1}>
+                    {cat.name.toUpperCase()}
                   </Text>
                 </Pressable>
               ))}
@@ -129,267 +165,212 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Featured products — horizontal */}
+        {/* Curated picks — featured products in a 2-column grid */}
         <View style={{ marginTop: spacing[8] }}>
-          <SectionHeader title="Featured" onSeeAll={() => router.push('/(tabs)/shop')} />
+          <SectionHeader title="CURATED PICKS" />
           {loading && featured.length === 0 ? (
-            <ProductRailSkeleton />
-          ) : featured.length === 0 ? null : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.rail}
-            >
+            <GridSkeleton />
+          ) : (
+            <View style={styles.grid}>
               {featured.map((product) => (
-                <View key={product.id} style={styles.railItem}>
-                  <ProductCard product={product} currency={currency} />
-                </View>
+                <FeaturedCard key={product.id} product={product} currency={currency} />
               ))}
-            </ScrollView>
+            </View>
           )}
         </View>
 
-        {/* Editorial promo */}
-        <Pressable
-          onPress={() => router.push('/(tabs)/shop')}
-          style={({ pressed }) => [styles.editorial, pressed && { opacity: 0.95 }]}
-        >
-          <View style={styles.editorialLeft}>
-            <Text style={styles.editorialEyebrow}>EDITORIAL</Text>
-            <Text style={styles.editorialTitle}>
-              The art of{'\n'}quiet luxury.
-            </Text>
-            <Text style={styles.editorialBody}>
-              Pieces meant to outlast trends.
-            </Text>
-            <View style={styles.editorialLink}>
-              <Text style={styles.editorialLinkText}>Read story</Text>
-              <Ionicons name="arrow-forward" size={14} color={colors.ink[900]} />
-            </View>
-          </View>
-          <View style={styles.editorialRight}>
-            <Ionicons name="bag-handle-outline" size={48} color={colors.ink[200]} />
-          </View>
-        </Pressable>
-
-        {/* Categories visual grid */}
-        {categories.length > 0 ? (
-          <View style={{ marginTop: spacing[8] }}>
-            <SectionHeader title="Shop by category" />
-            <View style={styles.catGrid}>
-              {categories.slice(0, 4).map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => router.push(`/category/${cat.slug}` as never)}
-                  style={({ pressed }) => [styles.catTile, pressed && { opacity: 0.85 }]}
-                >
-                  {cat.imageUrl ? (
-                    <Image
-                      source={cat.imageUrl}
-                      style={styles.catImage}
-                      contentFit="cover"
-                      transition={150}
-                    />
-                  ) : (
-                    <View style={[styles.catImage, styles.catPlaceholder]}>
-                      <Ionicons name="cube-outline" size={28} color={colors.ink[300]} />
-                    </View>
-                  )}
-                  <View style={styles.catTileOverlay} />
-                  <View style={styles.catTileText}>
-                    <Text style={styles.catTileName} numberOfLines={1}>
-                      {cat.name}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={16} color="#fff" />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        ) : null}
-
-        {/* New arrivals */}
-        {newArrivals.length > 0 ? (
-          <View style={{ marginTop: spacing[8] }}>
-            <SectionHeader
-              title="New arrivals"
-              onSeeAll={() => router.push('/(tabs)/shop')}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.rail}
-            >
-              {newArrivals.map((product) => (
-                <View key={product.id} style={styles.railItem}>
-                  <ProductCard product={product} currency={currency} />
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {/* Trust ribbon */}
-        <View style={styles.trust}>
-          {[
-            {
-              icon: 'shield-checkmark-outline' as const,
-              title: 'Secure checkout',
-              body: 'End-to-end encrypted payments.',
-            },
-            {
-              icon: 'paper-plane-outline' as const,
-              title: 'Worldwide shipping',
-              body: 'Tracked delivery to your door.',
-            },
-            {
-              icon: 'refresh-outline' as const,
-              title: '30-day returns',
-              body: 'Send it back, no questions.',
-            },
-          ].map((t) => (
-            <View key={t.title} style={styles.trustItem}>
-              <View style={styles.trustIcon}>
-                <Ionicons name={t.icon} size={20} color={colors.ink[900]} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.trustTitle}>{t.title}</Text>
-                <Text style={styles.trustBody}>{t.body}</Text>
-              </View>
-            </View>
-          ))}
+        {/* The Noir Club */}
+        <View style={styles.club}>
+          <Text style={styles.clubTitle}>THE NOIR CLUB</Text>
+          <Text style={styles.clubBody}>
+            Gain top access to limited editions and exclusive products.
+          </Text>
+          <Pressable
+            onPress={() => router.push('/(auth)/register' as never)}
+            style={({ pressed }) => [styles.clubBtn, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.clubBtnText}>SIGN UP NOW</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+/**
+ * Premium product card for the dark home grid. The image sits on a light
+ * tile with a hairline border so products photographed on EITHER a black or
+ * white background stay fully visible against the dark page.
+ */
+function FeaturedCard({ product, currency }: { product: Product; currency?: string }) {
+  const firstMedia = product.media?.[0];
+  return (
+    <Pressable
+      onPress={() => router.push(`/product/${product.slug}` as never)}
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}
+    >
+      <View style={styles.cardImageBox}>
+        {firstMedia?.url ? (
+          <Image
+            source={firstMedia.url}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <View style={styles.cardPlaceholder}>
+            <Ionicons name="image-outline" size={30} color={colors.ink[300]} />
+          </View>
+        )}
+        <View style={styles.heart}>
+          <Ionicons name="heart-outline" size={16} color={colors.ink[900]} />
+        </View>
+      </View>
+      {product.category?.name ? (
+        <Text style={styles.cardCategory} numberOfLines={1}>
+          {product.category.name.toUpperCase()}
+        </Text>
+      ) : null}
+      <Text style={styles.cardName} numberOfLines={1}>
+        {product.name}
+      </Text>
+      <Text style={styles.cardPrice}>
+        {getStartingPrice(product.variants ?? [], currency)}
+      </Text>
+    </Pressable>
+  );
+}
+
 function SectionHeader({
   title,
-  onSeeAll,
+  actionLabel,
+  onAction,
 }: {
   title: string;
-  onSeeAll?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {onSeeAll ? (
-        <Pressable onPress={onSeeAll} hitSlop={8}>
-          <Text style={styles.seeAll}>See all</Text>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} hitSlop={8}>
+          <Text style={styles.sectionAction}>{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-function ChipSkeleton() {
+function CollectionsSkeleton() {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.chipRow}
+      contentContainerStyle={styles.collRow}
     >
-      {[1, 2, 3, 4, 5].map((i) => (
-        <View key={i} style={[styles.chip, styles.skeleton, { width: 90 }]} />
-      ))}
-    </ScrollView>
-  );
-}
-
-function ProductRailSkeleton() {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.rail}
-    >
-      {[1, 2, 3].map((i) => (
-        <View key={i} style={[styles.railItem, { gap: spacing[2] }]}>
-          <View style={[styles.skeleton, { aspectRatio: 3 / 4, borderRadius: radius.lg }]} />
-          <View
-            style={[
-              styles.skeleton,
-              { height: 14, width: '60%', borderRadius: 4, marginTop: spacing[2] },
-            ]}
-          />
-          <View
-            style={[
-              styles.skeleton,
-              { height: 14, width: '40%', borderRadius: 4, marginTop: 4 },
-            ]}
-          />
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={styles.collItem}>
+          <View style={[styles.collThumb, styles.skeleton]} />
+          <View style={[styles.skeleton, { height: 10, width: 48, borderRadius: 3, marginTop: spacing[2] }]} />
         </View>
       ))}
     </ScrollView>
   );
 }
 
+function GridSkeleton() {
+  return (
+    <View style={styles.grid}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={styles.card}>
+          <View style={[styles.cardImageBox, styles.skeleton]} />
+          <View style={[styles.skeleton, { height: 10, width: '50%', borderRadius: 3, marginTop: spacing[2] }]} />
+          <View style={[styles.skeleton, { height: 12, width: '70%', borderRadius: 3, marginTop: 6 }]} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const CARD_GAP = spacing[3];
+
 const styles = StyleSheet.create({
-  greetingRow: {
+  safe: { flex: 1, backgroundColor: colors.ink[900] },
+
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing[4],
-    marginTop: spacing[2],
-    marginBottom: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[3],
   },
-  greetingLabel: { ...text.sm, color: colors.ink[500] },
-  greetingName: {
-    ...text['2xl'],
-    fontWeight: '700',
-    color: colors.ink[900],
-    letterSpacing: -0.3,
+  brand: {
+    ...text.lg,
+    color: '#fff',
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  brandAccent: { color: colors.accentGold },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   hero: {
     marginHorizontal: spacing[4],
-    height: 320,
+    height: 460,
     borderRadius: radius['2xl'],
-    backgroundColor: colors.ink[900],
+    backgroundColor: colors.ink[800],
     overflow: 'hidden',
     justifyContent: 'flex-end',
   },
-  heroOverlay: {
+  heroScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.ink[900],
+    // Strong enough that white-background product photos still read white
+    // text + CTA clearly. Sits under the content block.
+    backgroundColor: 'rgba(10,10,10,0.5)',
   },
-  heroContent: { padding: spacing[6] },
+  heroContent: {
+    padding: spacing[6],
+    paddingTop: spacing[10],
+    alignItems: 'center',
+    // Extra darkening behind the text for guaranteed contrast over any image.
+    backgroundColor: 'rgba(10,10,10,0.35)',
+  },
   heroEyebrow: {
     ...text.xs,
-    color: colors.accentGold,
+    color: '#fff',
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 3,
     marginBottom: spacing[3],
+    opacity: 0.85,
   },
   heroTitle: {
-    fontSize: 44,
-    lineHeight: 48,
-    fontWeight: '700',
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '800',
     color: '#fff',
-    letterSpacing: -1,
-    marginBottom: spacing[3],
-  },
-  heroSubtitle: {
-    ...text.sm,
-    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+    textAlign: 'center',
     marginBottom: spacing[5],
-    lineHeight: 20,
   },
   heroCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
     backgroundColor: '#fff',
-    paddingHorizontal: spacing[5],
-    paddingVertical: 12,
-    borderRadius: radius.full,
-    alignSelf: 'flex-start',
+    paddingHorizontal: spacing[8],
+    paddingVertical: 14,
+    borderRadius: radius.sm,
   },
   heroCtaText: {
     ...text.sm,
     color: colors.ink[900],
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 1.5,
   },
 
   sectionHeader: {
@@ -397,156 +378,132 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing[4],
-    marginBottom: spacing[3],
+    marginBottom: spacing[4],
   },
   sectionTitle: {
-    ...text['2xl'],
+    ...text.lg,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 1.5,
+  },
+  sectionAction: {
+    ...text.xs,
+    color: colors.accentGold,
     fontWeight: '700',
-    color: colors.ink[900],
-    letterSpacing: -0.3,
+    letterSpacing: 0.5,
   },
-  seeAll: { ...text.sm, color: colors.ink[600], fontWeight: '600' },
 
-  chipRow: {
-    paddingHorizontal: spacing[4],
-    gap: spacing[2],
-  },
-  chip: {
-    paddingHorizontal: spacing[4],
-    height: 38,
+  collRow: { paddingHorizontal: spacing[4], gap: spacing[5] },
+  collItem: { alignItems: 'center', width: 64 },
+  collThumb: {
+    width: 64,
+    height: 64,
     borderRadius: radius.full,
     backgroundColor: colors.surface[1],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipText: {
-    ...text.sm,
-    color: colors.ink[800],
-    fontWeight: '600',
-  },
-
-  rail: {
-    paddingHorizontal: spacing[4],
-    gap: spacing[3],
-  },
-  railItem: { width: 170 },
-
-  editorial: {
-    marginHorizontal: spacing[4],
-    marginTop: spacing[8],
-    backgroundColor: colors.accentGoldLight,
-    borderRadius: radius['2xl'],
-    padding: spacing[5],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
     overflow: 'hidden',
-  },
-  editorialLeft: { flex: 1 },
-  editorialRight: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editorialEyebrow: {
+  collLabel: {
     ...text.xs,
-    color: colors.accentGoldDark,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginBottom: spacing[2],
-  },
-  editorialTitle: {
-    ...text['2xl'],
-    fontWeight: '700',
-    color: colors.ink[900],
-    letterSpacing: -0.3,
-    marginBottom: spacing[2],
-  },
-  editorialBody: {
-    ...text.sm,
-    color: colors.ink[600],
-    marginBottom: spacing[3],
-  },
-  editorialLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  editorialLinkText: {
-    ...text.sm,
-    color: colors.ink[900],
-    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginTop: spacing[2],
   },
 
-  catGrid: {
+  grid: {
     paddingHorizontal: spacing[4],
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[3],
+    gap: CARD_GAP,
   },
-  catTile: {
-    width: '47.5%',
+  card: { width: `${(100 - 4) / 2}%` },
+  cardImageBox: {
     aspectRatio: 1,
-    borderRadius: radius.xl,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: colors.surface[2],
-  },
-  catImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  catPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  catTileOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,10,0.25)',
-  },
-  catTileText: {
-    position: 'absolute',
-    left: spacing[3],
-    right: spacing[3],
-    bottom: spacing[3],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  catTileName: {
-    ...text.base,
-    color: '#fff',
-    fontWeight: '700',
-    flex: 1,
-    letterSpacing: 0.2,
-  },
-
-  trust: {
-    marginTop: spacing[10],
-    marginHorizontal: spacing[4],
-    padding: spacing[5],
+    // Neutral light tile + hairline border so BOTH black-bg and white-bg
+    // product photos stay clearly visible against the dark page.
     backgroundColor: colors.surface[1],
-    borderRadius: radius['2xl'],
-    gap: spacing[4],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-  trustItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
-  trustIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: '#fff',
+  cardPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  trustTitle: {
+  heart: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 30,
+    height: 30,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardCategory: {
+    ...text.xs,
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginTop: spacing[3],
+  },
+  cardName: {
     ...text.sm,
+    color: '#fff',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  cardPrice: {
+    ...text.sm,
+    color: colors.accentGold,
     fontWeight: '700',
-    color: colors.ink[900],
-    marginBottom: 2,
+    marginTop: 2,
   },
-  trustBody: { ...text.xs, color: colors.ink[500] },
 
-  skeleton: {
-    backgroundColor: colors.surface[2],
+  club: {
+    marginTop: spacing[10],
+    marginHorizontal: spacing[4],
+    padding: spacing[8],
+    borderRadius: radius['2xl'],
+    backgroundColor: colors.ink[800],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
   },
+  clubTitle: {
+    ...text.xl,
+    color: '#fff',
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: spacing[2],
+  },
+  clubBody: {
+    ...text.sm,
+    color: 'rgba(255,255,255,0.65)',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: spacing[5],
+  },
+  clubBtn: {
+    borderWidth: 1,
+    borderColor: colors.accentGold,
+    paddingHorizontal: spacing[8],
+    paddingVertical: 13,
+    borderRadius: radius.sm,
+  },
+  clubBtnText: {
+    ...text.sm,
+    color: colors.accentGold,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+
+  skeleton: { backgroundColor: 'rgba(255,255,255,0.08)' },
 });
