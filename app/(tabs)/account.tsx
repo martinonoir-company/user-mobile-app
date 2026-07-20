@@ -45,7 +45,7 @@ export default function AccountScreen() {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+      <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
         <TopBar title="Account" showSearch={false} />
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <EmptyState
@@ -74,7 +74,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+    <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
       <TopBar title="Account" showSearch={false} />
       <ScrollView>
         <View style={styles.profileCard}>

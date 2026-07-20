@@ -25,7 +25,7 @@ export default function CartScreen() {
 
   if (items.length === 0) {
     return (
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+      <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
         <TopBar title="Bag" showSearch={false} />
         <View style={{ flex: 1, justifyContent: 'center' }}>
           <EmptyState
@@ -40,7 +40,7 @@ export default function CartScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+    <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
       <TopBar title="Bag" showSearch={false} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: spacing[10] }}>

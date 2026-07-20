@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, spacing, text } from '@/theme';
 
 interface Props {
@@ -9,8 +10,12 @@ interface Props {
 }
 
 export function TopBar({ title = 'Martinonoir', showSearch = true }: Props) {
+  // Pad for the status bar / notch directly, so the bar is never clipped at
+  // the top edge regardless of how the parent screen wraps it. A minimum keeps
+  // it comfortable on devices that report a 0 top inset.
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { paddingTop: Math.max(insets.top, spacing[2]) + spacing[2] }]}>
       <Text style={styles.brand}>{title}</Text>
       {showSearch ? (
         <Pressable
