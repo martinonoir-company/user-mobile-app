@@ -7,8 +7,10 @@
     "icon": "./assets/expo/splash-icon.png",
     "scheme": "martinonoir",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
-    "assetBundlePatterns": ["**/*"],
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.martinonoir.mobile"
@@ -18,8 +20,15 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["DEFAULT", "BROWSABLE"],
-          "data": [{ "scheme": "martinonoir" }]
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "martinonoir"
+            }
+          ]
         }
       ]
     },
@@ -39,13 +48,18 @@
           "backgroundColor": "#0A0A0A",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://api.martinonoir.com/api/v1"
+      "apiUrl": "https://api.martinonoir.com/api/v1",
+      "router": {},
+      "eas": {
+        "projectId": "0dc4ec62-8111-4816-b537-aed0253d077c"
+      }
     }
   }
 }
