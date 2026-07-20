@@ -84,7 +84,7 @@ export default function ShopScreen() {
   }, [page, pages, loadingMore, selectedCategory, loadPage]);
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+    <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
       <TopBar title="Shop" />
 
       <ScrollView
@@ -162,17 +162,28 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
+    minHeight: 40,
     borderRadius: radius.full,
     backgroundColor: colors.surface[1],
     borderWidth: 1,
     borderColor: colors.ink[100],
+    // Center the label and give it a fixed row height so ascenders/descenders
+    // (e.g. the "g" in "bags") are never clipped by the pill on Android.
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipActive: {
     backgroundColor: colors.ink[900],
     borderColor: colors.ink[900],
   },
-  chipText: { ...text.sm, color: colors.ink[700], fontWeight: '600' },
+  chipText: {
+    ...text.sm,
+    color: colors.ink[700],
+    fontWeight: '600',
+    // Disable Android's extra font padding, which was cropping the glyphs.
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
   chipTextActive: { color: '#fff' },
   grid: { padding: spacing[4], gap: spacing[3] },
   column: { gap: spacing[3], marginBottom: spacing[3] },

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -35,6 +35,19 @@ export default function ProductDetailScreen() {
   const [variantId, setVariantId] = useState<string | null>(null);
   const [stock, setStock] = useState<StockLevel | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
+  // Briefly true right after a successful add, so the button can confirm it.
+  const [justAdded, setJustAdded] = useState(false);
+  // Timers for the button's transient states; cleared on unmount so they can't
+  // fire a state update after the screen is gone.
+  const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (addedTimer.current) clearTimeout(addedTimer.current);
+      if (addingTimer.current) clearTimeout(addingTimer.current);
+    },
+    [],
+  );
   // Admin-configured wholesale minimum order quantity.
   const MIN_WHOLESALE_QTY = useWholesaleMinQty();
   // Wholesale: when on, line is priced at wholesale and qty must be ≥ minimum.
@@ -156,10 +169,15 @@ export default function ProductDetailScreen() {
         },
         qty,
       );
+      // Confirm success on the button: swap to a checkmark "Added to Bag"
+      // state that lingers long enough for the user to notice, then reverts.
+      setJustAdded(true);
+      if (addedTimer.current) clearTimeout(addedTimer.current);
+      addedTimer.current = setTimeout(() => setJustAdded(false), 1500);
     } finally {
-      // Give the optimistic update a tick before unlocking so the button can
-      // display a small success pulse.
-      setTimeout(() => setAddingToCart(false), 400);
+      // Give the optimistic update a tick before unlocking the button.
+      if (addingTimer.current) clearTimeout(addingTimer.current);
+      addingTimer.current = setTimeout(() => setAddingToCart(false), 400);
     }
   };
 
@@ -258,7 +276,7 @@ export default function ProductDetailScreen() {
             {(media.length > 0 ? media : [null]).map((m, i) => (
               <View key={m?.id ?? i} style={[styles.galleryItem, { width: screenWidth }]}>
                 {m ? (
-                  <Image source={m.url} style={styles.galleryImage} contentFit="cover" />
+                  <Image source={m.url} style={styles.galleryImage} contentFit="contain" />
                 ) : (
                   <View style={[styles.galleryImage, styles.galleryPlaceholder]}>
                     <Ionicons name="image-outline" size={48} color={colors.ink[300]} />
@@ -424,10 +442,24 @@ export default function ProductDetailScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Button
-            title={outOfStock ? 'Out of stock: restocking' : inactive ? 'Unavailable' : 'Add to Bag'}
+            title={
+              justAdded
+                ? 'Added to Bag'
+                : outOfStock
+                  ? 'Out of stock: restocking'
+                  : inactive
+                    ? 'Unavailable'
+                    : 'Add to Bag'
+            }
+            icon={
+              justAdded ? (
+                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              ) : undefined
+            }
+            variant={justAdded ? 'secondary' : 'primary'}
             onPress={onAddToCart}
             disabled={!canAdd}
-            loading={addingToCart}
+            loading={addingToCart && !justAdded}
             size="lg"
             fullWidth
           />
