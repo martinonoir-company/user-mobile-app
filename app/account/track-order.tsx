@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<number, string> = {
 
 export default function TrackOrderScreen() {
   const [orderNumber, setOrderNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tracking, setTracking] = useState<ShippingTracking | null>(null);
@@ -29,9 +30,13 @@ export default function TrackOrderScreen() {
       setError('Enter an order number.');
       return;
     }
+    if (!email.trim()) {
+      setError('Enter the email you ordered with.');
+      return;
+    }
     setLoading(true);
     try {
-      const res = await api.trackByOrderNumber(orderNumber.trim());
+      const res = await api.trackByOrderNumber(orderNumber.trim(), email.trim());
       setTracking(res.data);
     } catch (err: unknown) {
       const msg = (err as { message?: string | string[] })?.message;
@@ -53,6 +58,14 @@ export default function TrackOrderScreen() {
           placeholder="e.g. MN-260623-00042"
           value={orderNumber}
           onChangeText={setOrderNumber}
+        />
+        <Input
+          label="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="The email you ordered with"
+          value={email}
+          onChangeText={setEmail}
         />
         <Button
           title="Track"

@@ -135,7 +135,7 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
         faq: [
           {
             q: 'How long does shipping take?',
-            a: 'Standard delivery within Lagos takes 1\u20132 business days. Other states typically take 3\u20135 business days. International orders ship within 7\u201314 business days.',
+            a: 'Intra-state delivery takes 1\u20132 business days. Out-of-state orders take 2\u20135 business days. International orders take 5\u20137 business days.',
           },
           {
             q: 'What is your return policy?',
@@ -181,7 +181,7 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
         faq: [
           {
             q: 'How long does delivery take?',
-            a: 'Lagos: 1\u20132 business days. Other Nigerian states: 3\u20135 business days. International: 7\u201314 business days.',
+            a: 'Intra-state: 1\u20132 business days. Out of state: 2\u20135 business days. International: 5\u20137 business days.',
           },
           {
             q: 'Do you ship internationally?',
@@ -302,10 +302,9 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
       {
         heading: 'Delivery times',
         items: [
-          { label: 'Lagos', value: '1\u20132 business days' },
-          { label: 'Other Nigerian states', value: '3\u20135 business days' },
-          { label: 'West Africa', value: '4\u20137 business days' },
-          { label: 'International', value: '7\u201314 business days' },
+          { label: 'Intra-state', value: '1\u20132 business days' },
+          { label: 'Out of state', value: '2\u20135 business days' },
+          { label: 'International', value: '5\u20137 business days' },
         ],
       },
       {
