@@ -264,7 +264,8 @@ export interface WishlistItem {
   productId: string;
   variantId?: string;
   note?: string;
-  product: Product;
+  /** Null when the underlying product was deleted after being wishlisted. */
+  product: Product | null;
   variant?: ProductVariant;
   createdAt: string;
 }

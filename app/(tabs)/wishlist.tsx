@@ -32,7 +32,10 @@ export default function WishlistScreen() {
   const loadWishlist = useCallback(async () => {
     try {
       const res = await api.getWishlist();
-      setItems(res.data);
+      // A wishlist row survives even after its product is deleted server-side,
+      // in which case `product` comes back null. Drop those orphans so the
+      // list (count, renderItem) never dereferences a null product.
+      setItems(res.data.filter((i) => i.product != null));
     } catch {
       setItems([]);
     }
@@ -70,20 +73,21 @@ export default function WishlistScreen() {
 
   const handleMoveToBag = useCallback(
     (item: WishlistItem) => {
-      const v = item.variant ?? item.product.variants?.[0];
-      if (!v) {
+      const product = item.product;
+      const v = item.variant ?? product?.variants?.[0];
+      if (!product || !v) {
         Alert.alert('Unavailable', 'This product has no available variant.');
         return;
       }
       const variantImage =
-        item.product.media?.find((m) => m.variantId === v.id)?.url ??
-        item.product.media?.find((m) => !m.variantId)?.url ??
-        item.product.media?.[0]?.url;
+        product.media?.find((m) => m.variantId === v.id)?.url ??
+        product.media?.find((m) => !m.variantId)?.url ??
+        product.media?.[0]?.url;
       addItem({
         variantId: v.id,
         productId: item.productId,
-        productName: item.product.name,
-        productSlug: item.product.slug,
+        productName: product.name,
+        productSlug: product.slug,
         variantName: v.name,
         sku: v.sku,
         priceNgn: parseInt(v.retailPriceNgn, 10),
@@ -195,6 +199,9 @@ export default function WishlistScreen() {
       }
       renderItem={({ item }) => {
         const product = item.product;
+        // Orphaned rows are filtered out on load; this guard keeps the type
+        // narrowed and is a safety net should one ever slip through.
+        if (!product) return null;
         const firstVariant = item.variant ?? product.variants?.[0];
         const firstMedia = product.media?.[0];
         const isRemoving = removingId === item.productId;
