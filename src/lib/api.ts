@@ -171,6 +171,15 @@ class ApiClient {
     });
   }
 
+  /**
+   * Permanently delete the signed-in customer's own account. The server
+   * anonymizes the account and frees the email for future re-registration
+   * while preserving order history. Requires the auth token to be set.
+   */
+  async deleteAccount() {
+    return this.request<void>('/auth/account', { method: 'DELETE' });
+  }
+
   async forgotPassword(email: string) {
     return this.request<void>('/auth/forgot-password', {
       method: 'POST',

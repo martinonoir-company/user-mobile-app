@@ -1,7 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -27,6 +35,7 @@ const MENU: Array<{
 export default function AccountScreen() {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -38,6 +47,42 @@ export default function AccountScreen() {
       .then((res) => setProfile(res.data))
       .catch(() => {});
   }, [isAuthenticated]);
+
+  async function performDelete() {
+    setDeleting(true);
+    try {
+      await api.deleteAccount();
+      // Clear the local session; the auth provider will route to signed-out.
+      await logout();
+    } catch (err: unknown) {
+      setDeleting(false);
+      const msg = (err as { message?: string | string[] })?.message;
+      Alert.alert(
+        'Could not delete account',
+        (Array.isArray(msg) ? msg[0] : msg) ||
+          'Something went wrong. Please try again or contact support.',
+      );
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete your account?',
+      "This can't be undone. Your profile, cart and wishlist are removed and " +
+        "you'll be signed out. Past orders are kept for records but unlinked " +
+        'from you. You can sign up again later with the same email.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            void performDelete();
+          },
+        },
+      ],
+    );
+  }
 
   if (isLoading) {
     return <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface[0] }} />;
@@ -119,6 +164,27 @@ export default function AccountScreen() {
           <Text style={styles.logoutText}>Sign out</Text>
         </Pressable>
 
+        {/* Danger zone — delete account */}
+        <Pressable
+          onPress={confirmDelete}
+          disabled={deleting}
+          style={styles.deleteBtn}
+        >
+          {deleting ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+          )}
+          <Text style={styles.deleteText}>
+            {deleting ? 'Deleting…' : 'Delete account'}
+          </Text>
+        </Pressable>
+        <Text style={styles.deleteHint}>
+          Permanently deletes your account. Past orders are kept for records
+          but unlinked from you. You can register again later with the same
+          email.
+        </Text>
+
         <View style={{ height: spacing[10] }} />
       </ScrollView>
     </SafeAreaView>
@@ -172,4 +238,20 @@ const styles = StyleSheet.create({
     padding: spacing[4],
   },
   logoutText: { ...text.sm, color: colors.danger, fontWeight: '700' },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    marginTop: spacing[2],
+    paddingVertical: spacing[3],
+  },
+  deleteText: { ...text.sm, color: colors.danger, fontWeight: '600' },
+  deleteHint: {
+    ...text.xs,
+    color: colors.ink[400],
+    textAlign: 'center',
+    paddingHorizontal: spacing[6],
+    marginTop: spacing[1],
+  },
 });
