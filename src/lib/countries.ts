@@ -1,0 +1,98 @@
+/**
+ * Countries available for shipping at checkout (ISO 3166-1 alpha-2).
+ * Nigeria first (domestic default); the rest alphabetical. The backend
+ * treats any 2-letter code other than "NG" as international shipping.
+ *
+ * Kept in sync manually with user-frontend/src/lib/countries.ts.
+ */
+export interface CountryOption {
+  code: string;
+  name: string;
+}
+
+export const COUNTRIES: CountryOption[] = [
+  { code: "NG", name: "Nigeria" },
+  { code: "AU", name: "Australia" },
+  { code: "AT", name: "Austria" },
+  { code: "BH", name: "Bahrain" },
+  { code: "BE", name: "Belgium" },
+  { code: "BJ", name: "Benin" },
+  { code: "BW", name: "Botswana" },
+  { code: "BR", name: "Brazil" },
+  { code: "BF", name: "Burkina Faso" },
+  { code: "CM", name: "Cameroon" },
+  { code: "CA", name: "Canada" },
+  { code: "CN", name: "China" },
+  { code: "CI", name: "Côte d'Ivoire" },
+  { code: "CY", name: "Cyprus" },
+  { code: "CZ", name: "Czechia" },
+  { code: "DK", name: "Denmark" },
+  { code: "EG", name: "Egypt" },
+  { code: "ET", name: "Ethiopia" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "GM", name: "Gambia" },
+  { code: "DE", name: "Germany" },
+  { code: "GH", name: "Ghana" },
+  { code: "GR", name: "Greece" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "HU", name: "Hungary" },
+  { code: "IN", name: "India" },
+  { code: "ID", name: "Indonesia" },
+  { code: "IE", name: "Ireland" },
+  { code: "IL", name: "Israel" },
+  { code: "IT", name: "Italy" },
+  { code: "JM", name: "Jamaica" },
+  { code: "JP", name: "Japan" },
+  { code: "JO", name: "Jordan" },
+  { code: "KE", name: "Kenya" },
+  { code: "KW", name: "Kuwait" },
+  { code: "LB", name: "Lebanon" },
+  { code: "LR", name: "Liberia" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "MY", name: "Malaysia" },
+  { code: "MT", name: "Malta" },
+  { code: "MU", name: "Mauritius" },
+  { code: "MX", name: "Mexico" },
+  { code: "MA", name: "Morocco" },
+  { code: "MZ", name: "Mozambique" },
+  { code: "NA", name: "Namibia" },
+  { code: "NL", name: "Netherlands" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "NE", name: "Niger" },
+  { code: "NO", name: "Norway" },
+  { code: "OM", name: "Oman" },
+  { code: "PK", name: "Pakistan" },
+  { code: "PH", name: "Philippines" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "QA", name: "Qatar" },
+  { code: "RO", name: "Romania" },
+  { code: "RW", name: "Rwanda" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "SN", name: "Senegal" },
+  { code: "SL", name: "Sierra Leone" },
+  { code: "SG", name: "Singapore" },
+  { code: "ZA", name: "South Africa" },
+  { code: "KR", name: "South Korea" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" },
+  { code: "CH", name: "Switzerland" },
+  { code: "TZ", name: "Tanzania" },
+  { code: "TH", name: "Thailand" },
+  { code: "TG", name: "Togo" },
+  { code: "TT", name: "Trinidad and Tobago" },
+  { code: "TN", name: "Tunisia" },
+  { code: "TR", name: "Türkiye" },
+  { code: "UG", name: "Uganda" },
+  { code: "AE", name: "United Arab Emirates" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+  { code: "VN", name: "Vietnam" },
+  { code: "ZM", name: "Zambia" },
+  { code: "ZW", name: "Zimbabwe" },
+];
+
+export function countryName(code: string): string {
+  return COUNTRIES.find((c) => c.code === code)?.name ?? code;
+}

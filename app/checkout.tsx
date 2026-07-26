@@ -13,6 +13,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { api, QuoteResult } from '@/lib/api';
+import { COUNTRIES, countryName } from '@/lib/countries';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/price';
@@ -85,6 +86,22 @@ export default function CheckoutScreen() {
     }
   }
   const [showStates, setShowStates] = useState(false);
+  const [countryCode, setCountryCode] = useState('NG');
+  const [showCountries, setShowCountries] = useState(false);
+
+  // Switching country resets the state field: Nigerian orders pick from
+  // NG_STATES, international ones type a free-form state/province.
+  function selectCountry(next: string) {
+    if (next !== countryCode) {
+      if (next === 'NG') {
+        setStateValue('Lagos');
+      } else if (countryCode === 'NG') {
+        setStateValue('');
+      }
+    }
+    setCountryCode(next);
+    setShowCountries(false);
+  }
 
   const cur = currency ?? 'NGN';
   const subtotal = getSubtotal(cur);
@@ -95,7 +112,7 @@ export default function CheckoutScreen() {
 
   const handleProceedToReview = async () => {
     setError(null);
-    if (!firstName.trim() || !lastName.trim() || !line1.trim() || !city.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !line1.trim() || !city.trim() || !stateValue.trim()) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -116,7 +133,7 @@ export default function CheckoutScreen() {
       }));
       const res = await api.getQuote(quoteItems, {
         currency: cur,
-        country: 'NG',
+        country: countryCode,
         state: stateValue,
         couponCode: couponCode.trim() || undefined,
         channel: 'MOBILE',
@@ -148,7 +165,7 @@ export default function CheckoutScreen() {
           city,
           state: stateValue,
           postalCode: postalCode || undefined,
-          country: 'NG',
+          country: countryCode,
           phone: phone || undefined,
         },
         currency: cur,
@@ -267,6 +284,45 @@ export default function CheckoutScreen() {
               onChangeText={setLine2}
               textContentType="streetAddressLine2"
             />
+            <View>
+              <Text style={styles.fieldLabel}>Country</Text>
+              <Pressable onPress={() => setShowCountries((v) => !v)} style={styles.select}>
+                <Text style={styles.selectText}>{countryName(countryCode)}</Text>
+                <Ionicons
+                  name={showCountries ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.ink[500]}
+                />
+              </Pressable>
+              {showCountries ? (
+                <View style={styles.dropdown}>
+                  <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
+                    {COUNTRIES.map((c) => (
+                      <Pressable
+                        key={c.code}
+                        onPress={() => selectCountry(c.code)}
+                        style={styles.dropdownItem}
+                      >
+                        <Text
+                          style={[
+                            text.sm,
+                            { color: c.code === countryCode ? colors.primary[700] : colors.ink[900] },
+                          ]}
+                        >
+                          {c.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+              {countryCode !== 'NG' ? (
+                <Text style={[text.xs, { color: colors.ink[500], marginTop: spacing[1] }]}>
+                  International order — shipping rates for {countryName(countryCode)} are calculated
+                  at the next step.
+                </Text>
+              ) : null}
+            </View>
             <View style={{ flexDirection: 'row', gap: spacing[3] }}>
               <View style={{ flex: 1 }}>
                 <Input
@@ -278,50 +334,62 @@ export default function CheckoutScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>State</Text>
-                <Pressable onPress={() => setShowStates((v) => !v)} style={styles.select}>
-                  <Text style={styles.selectText}>{stateValue}</Text>
-                  <Ionicons
-                    name={showStates ? 'chevron-up' : 'chevron-down'}
-                    size={16}
-                    color={colors.ink[500]}
+                {countryCode === 'NG' ? (
+                  <>
+                    <Text style={styles.fieldLabel}>State</Text>
+                    <Pressable onPress={() => setShowStates((v) => !v)} style={styles.select}>
+                      <Text style={styles.selectText}>{stateValue}</Text>
+                      <Ionicons
+                        name={showStates ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={colors.ink[500]}
+                      />
+                    </Pressable>
+                    {showStates ? (
+                      <View style={styles.dropdown}>
+                        <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
+                          {NG_STATES.map((s) => (
+                            <Pressable
+                              key={s}
+                              onPress={() => {
+                                setStateValue(s);
+                                setShowStates(false);
+                              }}
+                              style={styles.dropdownItem}
+                            >
+                              <Text
+                                style={[
+                                  text.sm,
+                                  { color: s === stateValue ? colors.primary[700] : colors.ink[900] },
+                                ]}
+                              >
+                                {s}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    ) : null}
+                  </>
+                ) : (
+                  <Input
+                    label="State / Province"
+                    required
+                    value={stateValue}
+                    onChangeText={setStateValue}
+                    textContentType="addressState"
                   />
-                </Pressable>
-                {showStates ? (
-                  <View style={styles.dropdown}>
-                    <ScrollView style={{ maxHeight: 220 }}>
-                      {NG_STATES.map((s) => (
-                        <Pressable
-                          key={s}
-                          onPress={() => {
-                            setStateValue(s);
-                            setShowStates(false);
-                          }}
-                          style={styles.dropdownItem}
-                        >
-                          <Text
-                            style={[
-                              text.sm,
-                              { color: s === stateValue ? colors.primary[700] : colors.ink[900] },
-                            ]}
-                          >
-                            {s}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                ) : null}
+                )}
               </View>
             </View>
             <Input
-              label={shippingOptOut ? 'Postal code' : 'Postal code'}
+              label="Postal code"
               required={!shippingOptOut}
-              keyboardType="number-pad"
+              keyboardType={countryCode === 'NG' ? 'number-pad' : 'default'}
               value={postalCode}
               onChangeText={setPostalCode}
               textContentType="postalCode"
-              placeholder="100001"
+              placeholder={countryCode === 'NG' ? '100001' : 'Postal / ZIP code'}
             />
             <Input
               label="Phone"
@@ -483,7 +551,7 @@ export default function CheckoutScreen() {
               {line2 ? `, ${line2}` : ''}
             </Text>
             <Text style={styles.addrLine}>
-              {city}, {stateValue}, Nigeria
+              {city}, {stateValue}, {countryName(countryCode)}
             </Text>
             {phone ? <Text style={styles.addrLine}>{phone}</Text> : null}
             <Pressable onPress={() => setStep('shipping')} style={{ marginTop: spacing[2] }}>
