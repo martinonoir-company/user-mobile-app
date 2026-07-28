@@ -116,6 +116,12 @@ export default function CheckoutScreen() {
       setError('Please fill in all required fields.');
       return;
     }
+    // Phone is compulsory for a shipped order — the courier (AAJ) needs a
+    // reachable contact number for delivery.
+    if (!shippingOptOut && !phone.trim()) {
+      setError('A phone number is required for delivery.');
+      return;
+    }
     if (!isAuthenticated && !guestEmail.includes('@')) {
       setError('Please enter a valid email.');
       return;
@@ -393,6 +399,7 @@ export default function CheckoutScreen() {
             />
             <Input
               label="Phone"
+              required={!shippingOptOut}
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
