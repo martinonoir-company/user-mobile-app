@@ -4,11 +4,13 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { LoadingView } from '@/components/LoadingView';
 import { api, Order } from '@/lib/api';
+import { useBottomInset } from '@/lib/use-bottom-inset';
 import { formatPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const bottomInset = useBottomInset();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,10 @@ export default function OrderDetailScreen() {
   const addr = order.shippingAddress as Record<string, string>;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.surface[0] }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.surface[0] }}
+      contentContainerStyle={{ paddingBottom: bottomInset + spacing[4] }}
+    >
       <View style={{ padding: spacing[4] }}>
         <View style={styles.headRow}>
           <Text style={styles.orderNo}>#{order.orderNumber}</Text>

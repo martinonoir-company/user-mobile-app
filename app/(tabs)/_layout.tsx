@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, View } from 'react-native';
 import { useCart } from '@/lib/cart-context';
+import { useBottomInset } from '@/lib/use-bottom-inset';
 import { colors, text } from '@/theme';
 
 function CartBadge() {
@@ -35,26 +35,9 @@ function CartBadge() {
 const TAB_CONTENT_HEIGHT = 56;
 
 export default function TabsLayout() {
-  const insets = useSafeAreaInsets();
-  // Reserve space under the tab content for the device's bottom system UI so
-  // the labels are never hidden behind the phone's navigation bar.
-  //
-  // On Android, edge-to-edge (the default in SDK 54) draws the app behind the
-  // system navigation bar, so we must inset by its height. Some devices/OEMs
-  // report insets.bottom as 0 (or not until edge-to-edge settles) even when a
-  // 3-button navigation bar is present — that produced the clipped labels. So:
-  //   - a real reported inset (gesture nav ≈ 16–24, button nav ≈ 48) is used
-  //     as-is (with a small hairline floor);
-  //   - a missing/near-zero inset falls back to 48dp, which clears a standard
-  //     3-button navigation bar.
-  // iOS always reports its true home-indicator inset, so it's used directly.
-  const ANDROID_NAV_BAR_FALLBACK = 48;
-  const bottomInset =
-    Platform.OS === 'android'
-      ? insets.bottom > 8
-        ? insets.bottom
-        : ANDROID_NAV_BAR_FALLBACK
-      : insets.bottom;
+  // Reserve space under the tab content for the phone's system navigation bar
+  // (see useBottomInset — handles Android devices that under-report the inset).
+  const bottomInset = useBottomInset();
   return (
     <Tabs
       screenOptions={{

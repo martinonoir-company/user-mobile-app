@@ -14,10 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProductCard } from '@/components/ProductCard';
 import { api, Product } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useBottomInset } from '@/lib/use-bottom-inset';
 import { colors, spacing, text } from '@/theme';
 
 export default function SearchScreen() {
   const { currency } = useAuth();
+  const bottomInset = useBottomInset();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
@@ -91,7 +93,7 @@ export default function SearchScreen() {
           keyExtractor={(p) => p.id}
           numColumns={2}
           columnWrapperStyle={styles.column}
-          contentContainerStyle={styles.grid}
+          contentContainerStyle={[styles.grid, { paddingBottom: bottomInset + spacing[4] }]}
           renderItem={({ item }) => (
             <View style={{ width: '48%' }}>
               <ProductCard product={item} currency={currency} />

@@ -18,6 +18,7 @@ import { api, Product, ProductVariant, StockLevel } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice, getVariantPriceMinor } from '@/lib/price';
+import { useBottomInset } from '@/lib/use-bottom-inset';
 import { useWholesaleMinQty } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
 
@@ -27,6 +28,7 @@ export default function ProductDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { isAuthenticated, currency } = useAuth();
   const { addItem } = useCart();
+  const bottomInset = useBottomInset();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -261,7 +263,7 @@ export default function ProductDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface[0] }}>
       <Stack.Screen options={{ title: '' }} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 + bottomInset }}>
         {/* Gallery */}
         <View>
           <ScrollView
@@ -428,7 +430,7 @@ export default function ProductDetailScreen() {
       </ScrollView>
 
       {/* Bottom action bar */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { paddingBottom: bottomInset + spacing[3] }]}>
         <Pressable
           onPress={onToggleWishlist}
           disabled={wishlistLoading || !product}

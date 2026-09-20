@@ -13,6 +13,7 @@ import { Badge } from '@/components/Badge';
 import { EmptyState } from '@/components/EmptyState';
 import { api, Order } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useBottomInset } from '@/lib/use-bottom-inset';
 import { formatPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
 
@@ -27,6 +28,7 @@ function statusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral
 
 export default function OrdersScreen() {
   const { isAuthenticated, isLoading } = useAuth();
+  const bottomInset = useBottomInset();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +69,7 @@ export default function OrdersScreen() {
       style={{ flex: 1, backgroundColor: colors.surface[0] }}
       data={orders}
       keyExtractor={(o) => o.id}
-      contentContainerStyle={{ padding: spacing[4], gap: spacing[3] }}
+      contentContainerStyle={{ padding: spacing[4], paddingBottom: spacing[4] + bottomInset, gap: spacing[3] }}
       renderItem={({ item }) => (
         <Pressable
           onPress={() => router.push(`/account/orders/${item.id}` as never)}
