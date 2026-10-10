@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
+import { ZoomableImageViewer } from '@/components/ZoomableImageViewer';
 import { api, Product, ProductVariant, StockLevel } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
@@ -34,6 +35,8 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  // Full-screen zoom viewer: holds the image URI to show, or null when closed.
+  const [zoomUri, setZoomUri] = useState<string | null>(null);
   const [variantId, setVariantId] = useState<string | null>(null);
   const [stock, setStock] = useState<StockLevel | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -278,7 +281,14 @@ export default function ProductDetailScreen() {
             {(media.length > 0 ? media : [null]).map((m, i) => (
               <View key={m?.id ?? i} style={[styles.galleryItem, { width: screenWidth }]}>
                 {m ? (
-                  <Image source={m.url} style={styles.galleryImage} contentFit="contain" />
+                  // Tap to open the full-screen pinch-to-zoom viewer.
+                  <Pressable
+                    style={styles.galleryImage}
+                    onPress={() => setZoomUri(m.url)}
+                    accessibilityLabel="Zoom product image"
+                  >
+                    <Image source={m.url} style={styles.galleryImage} contentFit="contain" />
+                  </Pressable>
                 ) : (
                   <View style={[styles.galleryImage, styles.galleryPlaceholder]}>
                     <Ionicons name="image-outline" size={48} color={colors.ink[300]} />
@@ -312,6 +322,13 @@ export default function ProductDetailScreen() {
                 ))}
               </View>
             </>
+          ) : null}
+          {/* Tap-to-zoom affordance — only when there is a real image. */}
+          {media.length > 0 ? (
+            <View style={styles.zoomHint} pointerEvents="none">
+              <Ionicons name="scan-outline" size={12} color="#fff" />
+              <Text style={styles.zoomHintText}>Tap to zoom</Text>
+            </View>
           ) : null}
         </View>
 
@@ -467,6 +484,13 @@ export default function ProductDetailScreen() {
           />
         </View>
       </View>
+
+      {/* Full-screen pinch-to-zoom viewer for the tapped image. */}
+      <ZoomableImageViewer
+        visible={zoomUri !== null}
+        uri={zoomUri}
+        onClose={() => setZoomUri(null)}
+      />
     </View>
   );
 }
@@ -528,6 +552,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17,17,17,0.6)',
   },
   imageCounterText: { ...text.xs, color: '#fff', fontWeight: '600' },
+  zoomHint: {
+    position: 'absolute',
+    top: spacing[3],
+    left: spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(17,17,17,0.6)',
+  },
+  zoomHintText: { ...text.xs, color: '#fff', fontWeight: '600' },
   swipeHint: {
     position: 'absolute',
     bottom: spacing[6],
