@@ -68,12 +68,9 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
       {
         heading: 'Our Milestones',
         items: [
-          { label: '2018', value: 'Founded in Lagos by Martins Nwude with a single leather bag design.' },
-          { label: '2019', value: 'First collection sold out in 72 hours. Workshop expanded to 12 artisans.' },
-          { label: '2021', value: 'Launched clothing line. Opened flagship showroom in Onitsha.' },
-          { label: '2023', value: 'Introduced international shipping to 7+ countries.' },
-          { label: '2024', value: 'Reached 50,000 customers across Africa, Europe, and North America.' },
-          { label: '2025', value: 'Launched Martinonoir digital storefront and unified commerce platform.' },
+          { label: '2018', value: 'Founded in Imo State by Martin Nwude, inspired by a vision to create timeless bags defined by elegance and purpose.' },
+          { label: '2020', value: 'Expanded beyond borders, reaching customers who value refined style and everyday sophistication.' },
+          { label: '2026', value: 'A defining moment: the launch of Martino Noir’s digital storefront and unified commerce platform, ushering in a new era for the brand.' },
         ],
       },
     ],
