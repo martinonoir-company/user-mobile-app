@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
@@ -9,25 +10,34 @@ import { api, Order } from '@/lib/api';
 import { formatPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
 
+// Order statuses that mean the customer has actually paid. Only these may show
+// a "confirmed" receipt — anything else is still awaiting payment.
+const PAID_STATUSES = ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+const isPaidStatus = (status?: string) =>
+  !!status && PAID_STATUSES.includes(status);
+
 export default function OrderConfirmationScreen() {
-  const params = useLocalSearchParams<{ order?: string; ref?: string }>();
+  const params = useLocalSearchParams<{
+    order?: string;
+    ref?: string;
+    unpaid?: string;
+  }>();
   const orderNumber = typeof params.order === 'string' ? params.order : '';
   const paymentRef = typeof params.ref === 'string' ? params.ref : '';
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!orderNumber) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    let attempts = 0;
-
-    // Load the order. If a payment reference was passed, reconcile it
-    // server-side first, then re-check the order a few times so a lagging
-    // Paystack webhook still surfaces the PAID status here.
-    const run = async () => {
+  // Resolve the true payment state: reconcile the reference, then poll the
+  // order a few times so a lagging Paystack webhook still surfaces PAID.
+  const resolveState = useCallback(
+    async (cancelledRef: { v: boolean }) => {
+      if (!orderNumber) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       if (paymentRef) {
         try {
           await api.reconcilePayment(paymentRef);
@@ -35,78 +45,164 @@ export default function OrderConfirmationScreen() {
           // Non-fatal — the order status below is the source of truth.
         }
       }
+      let attempts = 0;
       const poll = async () => {
-        if (cancelled) return;
+        if (cancelledRef.v) return;
         try {
           const res = await api.getOrderByNumber(orderNumber);
-          if (cancelled) return;
+          if (cancelledRef.v) return;
           setOrder(res.data);
-          // If payment is still pending, give the webhook a moment.
-          if (
-            paymentRef &&
-            attempts < 4 &&
-            res.data.status !== 'PAID' &&
-            res.data.status !== 'PROCESSING' &&
-            res.data.status !== 'SHIPPED' &&
-            res.data.status !== 'DELIVERED'
-          ) {
+          // Still unpaid and a payment was attempted? Give the webhook a moment.
+          if (paymentRef && attempts < 4 && !isPaidStatus(res.data.status)) {
             attempts += 1;
             setTimeout(poll, 3000);
+            return;
           }
         } catch {
-          if (!cancelled) setOrder(null);
-        } finally {
-          if (!cancelled) setLoading(false);
+          if (!cancelledRef.v) setOrder(null);
         }
+        if (!cancelledRef.v) setLoading(false);
       };
       await poll();
-    };
-    run();
+    },
+    [orderNumber, paymentRef],
+  );
+
+  useEffect(() => {
+    const ref = { v: false };
+    void resolveState(ref);
     return () => {
-      cancelled = true;
+      ref.v = true;
     };
-  }, [orderNumber, paymentRef]);
+  }, [resolveState]);
+
+  // Retry payment for an order that wasn't paid (customer closed the Paystack
+  // window). Re-initiates a Paystack session for the SAME order, reopens the
+  // hosted page, then re-resolves the true state.
+  const retryPayment = useCallback(async () => {
+    if (!order) return;
+    setRetryError(null);
+    setRetrying(true);
+    try {
+      const pay = await api.initiatePayment({ orderId: order.id, channel: 'MOBILE' });
+      if (!pay.data.checkoutUrl) {
+        throw new Error('Could not start payment. Please try again.');
+      }
+      await WebBrowser.openBrowserAsync(pay.data.checkoutUrl);
+      const ref = { v: false };
+      await resolveState(ref);
+    } catch (err: unknown) {
+      const msg = (err as { message?: string | string[] })?.message;
+      setRetryError(
+        (Array.isArray(msg) ? msg[0] : msg) || 'Could not start payment.',
+      );
+    } finally {
+      setRetrying(false);
+    }
+  }, [order, resolveState]);
 
   if (loading) return <LoadingView />;
 
+  const paid = isPaidStatus(order?.status);
+
   return (
     <Screen scroll edges={['bottom']}>
-      <View style={styles.heroBox}>
-        <View style={styles.checkCircle}>
-          <Ionicons name="checkmark" size={36} color="#fff" />
+      {paid ? (
+        <View style={styles.heroBox}>
+          <View style={styles.checkCircle}>
+            <Ionicons name="checkmark" size={36} color="#fff" />
+          </View>
+          <Text style={styles.title}>Order Confirmed</Text>
+          <Text style={styles.subtitle}>
+            Thank you for shopping with Martinonoir.
+          </Text>
+          {orderNumber ? (
+            <Text style={styles.orderNumber}>Order #{orderNumber}</Text>
+          ) : null}
         </View>
-        <Text style={styles.title}>Order Confirmed</Text>
-        <Text style={styles.subtitle}>Thank you for shopping with Martinonoir.</Text>
-        {orderNumber ? <Text style={styles.orderNumber}>Order #{orderNumber}</Text> : null}
-      </View>
+      ) : (
+        <View style={styles.heroBox}>
+          <View style={styles.pendingCircle}>
+            <Ionicons name="alert" size={36} color="#fff" />
+          </View>
+          <Text style={styles.title}>Payment Not Completed</Text>
+          <Text style={styles.subtitle}>
+            Your payment wasn&apos;t confirmed, so this order hasn&apos;t been
+            placed yet. You haven&apos;t been charged.
+          </Text>
+          {orderNumber ? (
+            <Text style={styles.orderNumber}>Order #{orderNumber}</Text>
+          ) : null}
+        </View>
+      )}
 
       {order ? (
         <View style={styles.card}>
-          <Row label="Status" value={order.status.replace(/_/g, ' ').toUpperCase()} />
-          <Row label="Total" value={formatPrice(order.grandTotal, order.currency)} bold />
+          <Row
+            label="Status"
+            value={order.status.replace(/_/g, ' ').toUpperCase()}
+          />
+          <Row
+            label="Total"
+            value={formatPrice(order.grandTotal, order.currency)}
+            bold
+          />
           <Row label="Items" value={String(order.items.length)} />
         </View>
       ) : null}
 
-      {/* Post-payment dispatch progress — only when paid. */}
-      {order &&
-      ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(order.status) ? (
-        <DispatchProgress orderId={order.id} />
+      {/* Post-payment dispatch progress — only when actually paid. */}
+      {order && paid ? <DispatchProgress orderId={order.id} /> : null}
+
+      {retryError ? (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={16} color={colors.danger} />
+          <Text style={styles.errorText}>{retryError}</Text>
+        </View>
       ) : null}
 
-      <Button
-        title="View My Orders"
-        variant="outline"
-        fullWidth
-        onPress={() => router.replace('/account/orders')}
-        style={{ marginTop: spacing[4] }}
-      />
-      <Button
-        title="Continue Shopping"
-        fullWidth
-        onPress={() => router.replace('/(tabs)')}
-        style={{ marginTop: spacing[3] }}
-      />
+      {paid ? (
+        <>
+          <Button
+            title="View My Orders"
+            variant="outline"
+            fullWidth
+            onPress={() => router.replace('/account/orders')}
+            style={{ marginTop: spacing[4] }}
+          />
+          <Button
+            title="Continue Shopping"
+            fullWidth
+            onPress={() => router.replace('/(tabs)')}
+            style={{ marginTop: spacing[3] }}
+          />
+        </>
+      ) : (
+        <>
+          <Button
+            title={retrying ? 'Opening payment…' : 'Retry Payment'}
+            loading={retrying}
+            fullWidth
+            onPress={retryPayment}
+            style={{ marginTop: spacing[4] }}
+            icon={<Ionicons name="lock-closed-outline" size={16} color="#fff" />}
+          />
+          <Button
+            title="View My Orders"
+            variant="outline"
+            fullWidth
+            onPress={() => router.replace('/account/orders')}
+            style={{ marginTop: spacing[3] }}
+          />
+          <Button
+            title="Continue Shopping"
+            variant="ghost"
+            fullWidth
+            onPress={() => router.replace('/(tabs)')}
+            style={{ marginTop: spacing[2] }}
+          />
+        </>
+      )}
     </Screen>
   );
 }
@@ -252,6 +348,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing[4],
   },
+  pendingCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[4],
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: colors.dangerLight,
+    padding: spacing[3],
+    borderRadius: radius.md,
+    marginTop: spacing[4],
+  },
+  errorText: { ...text.sm, color: colors.danger, flex: 1 },
   title: { ...text['2xl'], fontWeight: '700', color: colors.ink[900], marginBottom: spacing[2] },
   subtitle: { ...text.sm, color: colors.ink[500], textAlign: 'center' },
   orderNumber: {

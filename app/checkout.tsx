@@ -197,25 +197,46 @@ export default function CheckoutScreen() {
         throw new Error('Could not start payment. Please try again.');
       }
 
-      // Cart is cleared only once we have a valid order + payment session.
-      clearCart();
-
-      // Open the Paystack hosted page in an in-app browser. This resolves
-      // when the customer closes/finishes it.
+      // Open the Paystack hosted page in an in-app browser. This resolves when
+      // the customer closes OR finishes it — the result type does NOT tell us
+      // whether payment succeeded, so we must reconcile with the server before
+      // treating the order as paid.
       await WebBrowser.openBrowserAsync(pay.data.checkoutUrl);
 
-      // Reconcile the payment server-side (the app never calls Paystack).
-      // The confirmation screen also re-checks, so a still-pending result
-      // here is fine — it will settle there.
+      // Authoritative check: ask the server to reconcile with Paystack. Only a
+      // SUCCEEDED (or an already-advanced order) means the customer actually
+      // paid. A cancelled/abandoned checkout must NOT look like a success.
+      let paid = false;
       try {
-        await api.reconcilePayment(pay.data.merchantReference);
+        const rec = await api.reconcilePayment(pay.data.merchantReference);
+        paid = rec.data.status === 'SUCCEEDED';
       } catch {
-        // Non-fatal — the confirmation screen reconciles again.
+        // Reconcile call failed (network, etc.). Fall back to the order status
+        // so a settled payment isn't wrongly reported as unpaid.
+        try {
+          const o = await api.getOrderByNumber(order.orderNumber);
+          paid = ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(
+            o.data.status,
+          );
+        } catch {
+          paid = false;
+        }
       }
 
-      router.replace(
-        `/order-confirmation?order=${order.orderNumber}&ref=${encodeURIComponent(pay.data.merchantReference)}`,
-      );
+      if (paid) {
+        // Payment confirmed — safe to empty the cart and show the receipt.
+        clearCart();
+        router.replace(
+          `/order-confirmation?order=${order.orderNumber}&ref=${encodeURIComponent(pay.data.merchantReference)}`,
+        );
+      } else {
+        // Not paid (closed/cancelled/still pending). Keep the cart intact and
+        // send the customer to the status screen, which shows the real state
+        // and lets them retry — never a false "Order Confirmed".
+        router.replace(
+          `/order-confirmation?order=${order.orderNumber}&ref=${encodeURIComponent(pay.data.merchantReference)}&unpaid=1`,
+        );
+      }
     } catch (err: unknown) {
       const msg = (err as { message?: string | string[] })?.message;
       setError((Array.isArray(msg) ? msg[0] : msg) || 'Failed to place order.');
