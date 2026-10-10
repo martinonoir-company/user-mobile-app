@@ -341,11 +341,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getSubtotal = useCallback(
     (currency: string) => {
+      // Sum the EFFECTIVE unit price (priceNgn/priceUsd) — the wholesale price
+      // for a wholesale line, retail otherwise — which is exactly what each line
+      // row displays, so the subtotal always equals the sum of the line totals.
+      // Do NOT use currentPriceNgn/Usd here: that is the live RETAIL price, and
+      // for a wholesale line it is higher than what's actually charged, which
+      // inflated the total above the sum of the visible items. The authoritative
+      // amount is re-quoted server-side at checkout regardless.
       return items.reduce((sum, item) => {
-        const snapshot = currency === 'USD' ? item.priceUsd : item.priceNgn;
-        const current =
-          currency === 'USD' ? item.currentPriceUsd : item.currentPriceNgn;
-        const unit = current ?? snapshot;
+        const unit = currency === 'USD' ? item.priceUsd : item.priceNgn;
         return sum + unit * item.quantity;
       }, 0);
     },
