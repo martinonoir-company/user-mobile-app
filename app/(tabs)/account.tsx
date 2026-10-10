@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -36,17 +37,36 @@ export default function AccountScreen() {
   const { isAuthenticated, isLoading, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  // Fetch the latest profile from the server. Used on mount and on
+  // pull-to-refresh so a freshly-verified email clears the "Verify your
+  // email" banner without the user having to sign out and back in.
+  const loadProfile = useCallback(async () => {
     if (!isAuthenticated) {
       setProfile(null);
       return;
     }
-    api
-      .getProfile()
-      .then((res) => setProfile(res.data))
-      .catch(() => {});
+    try {
+      const res = await api.getProfile();
+      setProfile(res.data);
+    } catch {
+      // Keep whatever we last had; a transient error shouldn't blank the screen.
+    }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadProfile();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadProfile]);
 
   async function performDelete() {
     setDeleting(true);
@@ -121,7 +141,16 @@ export default function AccountScreen() {
   return (
     <SafeAreaView edges={[]} style={{ flex: 1, backgroundColor: colors.surface[0] }}>
       <TopBar title="Account" showSearch={false} />
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary[700]}
+            colors={[colors.primary[700]]}
+          />
+        }
+      >
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
