@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -53,6 +53,22 @@ export default function WishlistScreen() {
     setLoading(true);
     loadWishlist().finally(() => setLoading(false));
   }, [isAuthenticated, authLoading, loadWishlist]);
+
+  // Silently re-fetch whenever the tab regains focus so items added from the
+  // product screen appear without the user having to pull to refresh. The
+  // initial load is handled by the effect above, so skip the first focus to
+  // avoid a redundant fetch on mount.
+  const firstFocusDone = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !isAuthenticated) return;
+      if (!firstFocusDone.current) {
+        firstFocusDone.current = true;
+        return;
+      }
+      void loadWishlist();
+    }, [authLoading, isAuthenticated, loadWishlist]),
+  );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
