@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
+  Easing,
   FlatList,
   Pressable,
   RefreshControl,
@@ -178,17 +180,20 @@ export default function WishlistScreen() {
       columnWrapperStyle={{ gap: spacing[3] }}
       contentContainerStyle={{ padding: spacing[4], gap: spacing[4] }}
       ListHeaderComponent={
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Wishlist</Text>
-            <Text style={styles.countText}>
-              {items.length} {items.length === 1 ? 'item' : 'items'} saved
-            </Text>
+        <>
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Wishlist</Text>
+              <Text style={styles.countText}>
+                {items.length} {items.length === 1 ? 'item' : 'items'} saved
+              </Text>
+            </View>
+            <Pressable onPress={handleClearAll} hitSlop={8}>
+              <Text style={styles.clearText}>Clear All</Text>
+            </Pressable>
           </View>
-          <Pressable onPress={handleClearAll} hitSlop={8}>
-            <Text style={styles.clearText}>Clear All</Text>
-          </Pressable>
-        </View>
+          <PullToRefreshHint />
+        </>
       }
       refreshControl={
         <RefreshControl
@@ -276,6 +281,54 @@ export default function WishlistScreen() {
   );
 }
 
+/**
+ * A small animated hint telling users they can pull the screen down to
+ * refresh. Newly wishlisted items only appear after a refresh, so this nudges
+ * the user to pull. The down-arrow gently bounces on a loop.
+ */
+function PullToRefreshHint() {
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: 1,
+          duration: 650,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 650,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [bounce]);
+
+  const translateY = bounce.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-3, 5],
+  });
+  const opacity = bounce.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.55, 1],
+  });
+
+  return (
+    <View style={styles.hint}>
+      <Animated.View style={{ transform: [{ translateY }], opacity }}>
+        <Ionicons name="arrow-down" size={18} color={colors.primary[600]} />
+      </Animated.View>
+      <Text style={styles.hintText}>Pull to refresh</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   gate: {
     flex: 1,
@@ -306,6 +359,18 @@ const styles = StyleSheet.create({
   title: { ...text['2xl'], fontWeight: '700', color: colors.ink[900] },
   countText: { ...text.sm, color: colors.ink[500], marginTop: 2 },
   clearText: { ...text.sm, color: colors.ink[500], fontWeight: '600' },
+  hint: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingTop: spacing[1],
+    paddingBottom: spacing[3],
+  },
+  hintText: {
+    ...text.xs,
+    color: colors.primary[600],
+    fontWeight: '600',
+  },
   card: {
     flex: 1,
     maxWidth: '49%',
