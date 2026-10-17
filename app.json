@@ -13,7 +13,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.martinonoir.mobile"
+      "bundleIdentifier": "com.martinonoir.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.martinonoir.mobile",
@@ -56,6 +59,7 @@
     },
     "extra": {
       "apiUrl": "https://api.martinonoir.com/api/v1",
+      "siteUrl": "https://martinonoir.com",
       "router": {},
       "eas": {
         "projectId": "0dc4ec62-8111-4816-b537-aed0253d077c"

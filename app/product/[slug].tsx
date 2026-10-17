@@ -7,6 +7,7 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ import { api, Product, ProductVariant, StockLevel } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice, getVariantPriceMinor } from '@/lib/price';
+import { productUrl } from '@/lib/site';
 import { useBottomInset } from '@/lib/use-bottom-inset';
 import { useWholesaleMinQty } from '@/lib/wholesale';
 import { colors, radius, spacing, text } from '@/theme';
@@ -186,6 +188,24 @@ export default function ProductDetailScreen() {
     }
   };
 
+  // Share the product via the OS share sheet. The link points to the public
+  // web storefront so any recipient can open it in a browser.
+  const onShare = async () => {
+    if (!product) return;
+    const url = productUrl(product.slug);
+    try {
+      await Share.share({
+        // Android uses `message`; iOS prefers `url`. Include the URL in the
+        // message too so it's present on every platform/target.
+        message: `Check out ${product.name} on Martinonoir\n${url}`,
+        url,
+        title: product.name,
+      });
+    } catch {
+      // User dismissed the share sheet — no-op.
+    }
+  };
+
   const onToggleWishlist = async () => {
     if (!product) return;
     setWishlistError(null);
@@ -297,6 +317,15 @@ export default function ProductDetailScreen() {
               </View>
             ))}
           </ScrollView>
+          {/* Share — always available; opens the OS share sheet. */}
+          <Pressable
+            onPress={onShare}
+            hitSlop={8}
+            style={styles.shareBtn}
+            accessibilityLabel="Share this product"
+          >
+            <Ionicons name="share-social-outline" size={18} color="#fff" />
+          </Pressable>
           {media.length > 1 ? (
             <>
               {/* Image counter */}
@@ -545,13 +574,25 @@ const styles = StyleSheet.create({
   imageCounter: {
     position: 'absolute',
     top: spacing[3],
-    right: spacing[3],
+    // Sits to the left of the share button (≈36px wide + gap).
+    right: spacing[3] + 44,
     paddingHorizontal: spacing[2],
     paddingVertical: 2,
     borderRadius: radius.full,
     backgroundColor: 'rgba(17,17,17,0.6)',
   },
   imageCounterText: { ...text.xs, color: '#fff', fontWeight: '600' },
+  shareBtn: {
+    position: 'absolute',
+    top: spacing[3],
+    right: spacing[3],
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17,17,17,0.6)',
+  },
   zoomHint: {
     position: 'absolute',
     top: spacing[3],
