@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { TopBar } from '@/components/TopBar';
 import { api, UserProfile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { accountDeletionUrl } from '@/lib/site';
 import { colors, radius, spacing, text } from '@/theme';
 
 const MENU: Array<{
@@ -214,6 +216,18 @@ export default function AccountScreen() {
           email.
         </Text>
 
+        {/* Alternative route: delete via the web storefront's dedicated page
+            (email + password verification), opened in a browser. */}
+        <Pressable
+          onPress={() => {
+            WebBrowser.openBrowserAsync(accountDeletionUrl()).catch(() => {});
+          }}
+          style={styles.webDeleteBtn}
+        >
+          <Ionicons name="open-outline" size={14} color={colors.ink[500]} />
+          <Text style={styles.webDeleteText}>Or delete from main app</Text>
+        </Pressable>
+
         <View style={{ height: spacing[10] }} />
       </ScrollView>
     </SafeAreaView>
@@ -282,5 +296,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: spacing[6],
     marginTop: spacing[1],
+  },
+  webDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    marginTop: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  webDeleteText: {
+    ...text.xs,
+    color: colors.ink[500],
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

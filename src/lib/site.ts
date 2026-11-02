@@ -13,3 +13,8 @@ export const SITE_URL =
 export function productUrl(slug: string): string {
   return `${SITE_URL}/product/${slug}`;
 }
+
+/** Public web page for requesting account deletion (email + password flow). */
+export function accountDeletionUrl(): string {
+  return `${SITE_URL}/account-deletion`;
+}
