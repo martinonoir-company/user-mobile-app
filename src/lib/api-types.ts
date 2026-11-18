@@ -101,6 +101,20 @@ export interface QuoteContext {
   shippingMethod?: string;
   /** Sales channel — lets the server reject channel-scoped coupons. */
   channel?: 'STOREFRONT' | 'MOBILE' | 'POS';
+  /**
+   * Recipient address for a live shipping quote. Sent at the Review step so
+   * the previewed shipping fee is the real AAJ price checkout will charge.
+   */
+  recipient?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    line1?: string;
+    line2?: string;
+    city?: string;
+    postalCode?: string;
+    stateCode?: string;
+  };
 }
 
 export interface QuoteResult {
@@ -124,6 +138,8 @@ export interface QuoteResult {
   shippingTotal: number;
   shippingMethod?: { carrier: string; service: string; estimatedDays: { min: number; max: number }; rate: number };
   availableShippingRates: Array<{ carrier: string; service: string; estimatedDays: { min: number; max: number }; rate: number; currency: string }>;
+  /** True when the shipping rate is a live AAJ quote, false for a fallback. */
+  shippingLive?: boolean;
   taxTotal: number;
   grandTotal: number;
   savings: number;

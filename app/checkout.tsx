@@ -143,11 +143,29 @@ export default function CheckoutScreen() {
         state: stateValue,
         couponCode: couponCode.trim() || undefined,
         channel: 'MOBILE',
+        // Send the full recipient address (unless the customer opted out of
+        // shipping) so the preview reaches the live AAJ quote and shows the
+        // real, input-sensitive fee that checkout will charge.
+        recipient: shippingOptOut
+          ? undefined
+          : {
+              name: `${firstName} ${lastName}`.trim(),
+              phone: phone || undefined,
+              email: isAuthenticated ? undefined : guestEmail || undefined,
+              line1: line1,
+              line2: line2 || undefined,
+              city: city,
+              postalCode: postalCode || undefined,
+            },
       });
       setQuote(res.data);
       setStep('review');
-    } catch {
-      setError('Failed to calculate order total. Please try again.');
+    } catch (err: unknown) {
+      const msg = (err as { message?: string | string[] })?.message;
+      setError(
+        (Array.isArray(msg) ? msg[0] : msg) ||
+          'Failed to calculate order total. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
