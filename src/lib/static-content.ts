@@ -307,7 +307,7 @@ export const STATIC_CONTENT: Record<string, StaticContent> = {
       {
         heading: 'Shipping rates',
         paragraphs: [
-          'Shipping is calculated at checkout based on your destination and the weight of your order. Free standard shipping on Nigerian orders over \u20a6200,000.',
+          'Shipping is calculated at checkout based on your destination and the weight of your order.',
         ],
       },
       {
