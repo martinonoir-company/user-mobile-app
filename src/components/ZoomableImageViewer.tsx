@@ -1,7 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Dimensions, Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -145,32 +149,39 @@ export function ZoomableImageViewer({
       onRequestClose={handleClose}
       statusBarTranslucent
     >
-      <View style={styles.backdrop}>
-        {uri ? (
-          <GestureDetector gesture={composed}>
-            <AnimatedImage
-              source={uri}
-              style={[{ width, height }, imageStyle]}
-              contentFit="contain"
-              transition={150}
-            />
-          </GestureDetector>
-        ) : null}
+      {/* A React Native Modal renders in its own native view hierarchy, so the
+          app-root GestureHandlerRootView does NOT cover it. Without a root here,
+          the pinch/pan/tap gestures below are silently dead — this is why zoom
+          "refused" to work. Wrap the modal content in its own root. */}
+      <GestureHandlerRootView style={styles.root}>
+        <View style={styles.backdrop}>
+          {uri ? (
+            <GestureDetector gesture={composed}>
+              <AnimatedImage
+                source={uri}
+                style={[{ width, height }, imageStyle]}
+                contentFit="contain"
+                transition={150}
+              />
+            </GestureDetector>
+          ) : null}
 
-        <Pressable
-          onPress={handleClose}
-          hitSlop={12}
-          style={styles.closeBtn}
-          accessibilityLabel="Close image"
-        >
-          <Ionicons name="close" size={26} color="#fff" />
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={handleClose}
+            hitSlop={12}
+            style={styles.closeBtn}
+            accessibilityLabel="Close image"
+          >
+            <Ionicons name="close" size={26} color="#fff" />
+          </Pressable>
+        </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.95)',
