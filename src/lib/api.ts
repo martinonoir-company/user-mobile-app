@@ -15,6 +15,7 @@ import {
   Category,
   CheckoutInput,
   Order,
+  OrderRating,
   PaginatedOrders,
   PaginatedProducts,
   Product,
@@ -295,6 +296,27 @@ class ApiClient {
 
   async getOrderByNumber(orderNumber: string) {
     return this.request<{ data: Order }>(`/orders/number/${orderNumber}`);
+  }
+
+  // ── Order ratings ──
+
+  /** The signed-in user's rating for an order, or null if not yet rated. */
+  async getOrderRating(orderId: string) {
+    return this.request<{ data: OrderRating | null }>(
+      `/ratings/order/${orderId}`,
+    );
+  }
+
+  /** Create or update the user's rating for a paid order. */
+  async submitOrderRating(input: {
+    orderId: string;
+    stars: number;
+    comment?: string;
+  }) {
+    return this.request<{ data: OrderRating }>(`/ratings`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
   }
 
   // ── Shipping (AAJ Express) ──

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { LoadingView } from '@/components/LoadingView';
+import { OrderRating } from '@/components/OrderRating';
 import { Screen } from '@/components/Screen';
 import { api, Order } from '@/lib/api';
 import { formatPrice } from '@/lib/price';
@@ -153,6 +154,9 @@ export default function OrderConfirmationScreen() {
 
       {/* Post-payment dispatch progress — only when actually paid. */}
       {order && paid ? <DispatchProgress orderId={order.id} /> : null}
+
+      {/* Rate your order — only for a successfully-paid order. */}
+      {order && paid ? <OrderRating orderId={order.id} /> : null}
 
       {retryError ? (
         <View style={styles.errorBox}>

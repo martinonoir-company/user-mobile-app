@@ -3,7 +3,21 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/Badge';
 import { LoadingView } from '@/components/LoadingView';
+import { OrderRating } from '@/components/OrderRating';
 import { api, Order } from '@/lib/api';
+
+// Statuses that mean the order was successfully paid — the only states in
+// which a rating may be left (never PENDING_PAYMENT or CANCELLED).
+const RATEABLE_ORDER_STATUSES = new Set([
+  'PAID',
+  'PROCESSING',
+  'SHIPPED',
+  'DELIVERED',
+  'RETURN_REQUESTED',
+  'RETURN_APPROVED',
+  'RETURNED',
+  'REFUNDED',
+]);
 import { useBottomInset } from '@/lib/use-bottom-inset';
 import { formatPrice } from '@/lib/price';
 import { colors, radius, spacing, text } from '@/theme';
@@ -113,6 +127,11 @@ export default function OrderDetailScreen() {
               </View>
             ))}
           </View>
+        ) : null}
+
+        {/* Rate this order — only for successfully-paid orders. */}
+        {RATEABLE_ORDER_STATUSES.has(order.status) ? (
+          <OrderRating orderId={order.id} />
         ) : null}
 
         <View style={{ height: spacing[10] }} />

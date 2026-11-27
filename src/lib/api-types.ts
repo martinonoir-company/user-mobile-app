@@ -286,6 +286,16 @@ export interface WishlistItem {
   createdAt: string;
 }
 
+export interface OrderRating {
+  id: string;
+  orderId: string;
+  userId: string;
+  stars: number;
+  comment?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   id: string;
   firstName: string;
