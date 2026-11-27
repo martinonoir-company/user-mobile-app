@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { File, Paths } from 'expo-file-system';
 import { Image } from 'expo-image';
+import * as MediaLibrary from 'expo-media-library';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -39,6 +42,8 @@ export default function ProductDetailScreen() {
   const [activeImage, setActiveImage] = useState(0);
   // Full-screen zoom viewer: holds the image URI to show, or null when closed.
   const [zoomUri, setZoomUri] = useState<string | null>(null);
+  // True while the currently-shown image is being saved to the photo library.
+  const [downloading, setDownloading] = useState(false);
   const [variantId, setVariantId] = useState<string | null>(null);
   const [stock, setStock] = useState<StockLevel | null>(null);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -206,6 +211,56 @@ export default function ProductDetailScreen() {
     }
   };
 
+  // Save the currently-shown product image to the device photo library.
+  // Downloads to the app cache first, then copies into the gallery. Requires
+  // the write-only media-library permission (prompted on first use).
+  const onDownloadImage = async () => {
+    if (downloading) return;
+    // Resolve the same media list the gallery shows, then the active image.
+    const all = product?.media ?? [];
+    const vMedia = selectedVariant
+      ? all.filter((m) => m.variantId === selectedVariant.id)
+      : [];
+    const list = vMedia.length > 0 ? vMedia : all.filter((m) => !m.variantId);
+    const url = list[activeImage]?.url ?? list[0]?.url;
+    if (!url) {
+      Alert.alert('No image', 'There is no image to download.');
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const perm = await MediaLibrary.requestPermissionsAsync(true);
+      if (!perm.granted) {
+        Alert.alert(
+          'Permission needed',
+          'Allow photo access in Settings to save product images.',
+        );
+        return;
+      }
+
+      // Derive a reasonable filename + extension from the URL.
+      const clean = url.split('?')[0];
+      const ext = (clean.split('.').pop() || 'jpg').slice(0, 4);
+      const base = (product?.slug || 'martinonoir-product').replace(
+        /[^a-z0-9-]/gi,
+        '-',
+      );
+      const filename = `${base}-${activeImage + 1}.${ext}`;
+
+      const downloaded = await File.downloadFileAsync(
+        url,
+        new File(Paths.cache, filename),
+      );
+      await MediaLibrary.saveToLibraryAsync(downloaded.uri);
+      Alert.alert('Saved', 'The image has been saved to your photos.');
+    } catch {
+      Alert.alert('Download failed', 'Could not save the image. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const onToggleWishlist = async () => {
     if (!product) return;
     setWishlistError(null);
@@ -326,6 +381,22 @@ export default function ProductDetailScreen() {
           >
             <Ionicons name="share-social-outline" size={18} color="#fff" />
           </Pressable>
+          {/* Download the shown image to the device photo library. */}
+          {media.length > 0 ? (
+            <Pressable
+              onPress={onDownloadImage}
+              disabled={downloading}
+              hitSlop={8}
+              style={styles.downloadBtn}
+              accessibilityLabel="Download product image"
+            >
+              {downloading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="download-outline" size={18} color="#fff" />
+              )}
+            </Pressable>
+          ) : null}
           {media.length > 1 ? (
             <>
               {/* Image counter */}
@@ -585,6 +656,18 @@ const styles = StyleSheet.create({
   shareBtn: {
     position: 'absolute',
     top: spacing[3],
+    right: spacing[3],
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17,17,17,0.6)',
+  },
+  downloadBtn: {
+    position: 'absolute',
+    // Directly below the share button (36px tall + spacing gap).
+    top: spacing[3] + 44,
     right: spacing[3],
     width: 36,
     height: 36,
